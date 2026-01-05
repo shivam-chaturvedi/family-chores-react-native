@@ -1,44 +1,39 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
+import "react-native-gesture-handler";
+import React from "react";
+import { StatusBar, StyleSheet, View } from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
-import { NewAppScreen } from '@react-native/new-app-screen';
-import { StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
-import {
-  SafeAreaProvider,
-  useSafeAreaInsets,
-} from 'react-native-safe-area-context';
+import { theme } from "./src/theme";
+import { FamilyProvider } from "./src/contexts/FamilyContext";
+import { MealPlanProvider } from "./src/contexts/MealPlanContext";
+import { ToastProvider } from "./src/components/ui/Toast";
+import { AppNavigator } from "./src/navigation/AppNavigator";
 
-function App() {
-  const isDarkMode = useColorScheme() === 'dark';
-
+const App = () => {
   return (
     <SafeAreaProvider>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <AppContent />
+      <FamilyProvider>
+        <MealPlanProvider>
+          <ToastProvider>
+            <StatusBar
+              barStyle="dark-content"
+              backgroundColor={theme.colors.background}
+              animated
+            />
+            <View style={styles.appWrapper}>
+              <AppNavigator />
+            </View>
+          </ToastProvider>
+        </MealPlanProvider>
+      </FamilyProvider>
     </SafeAreaProvider>
   );
-}
-
-function AppContent() {
-  const safeAreaInsets = useSafeAreaInsets();
-
-  return (
-    <View style={styles.container}>
-      <NewAppScreen
-        templateFileName="App.tsx"
-        safeAreaInsets={safeAreaInsets}
-      />
-    </View>
-  );
-}
+};
 
 const styles = StyleSheet.create({
-  container: {
+  appWrapper: {
     flex: 1,
+    backgroundColor: theme.colors.background,
   },
 });
 
