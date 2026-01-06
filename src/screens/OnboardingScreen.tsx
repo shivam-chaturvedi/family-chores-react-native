@@ -1,36 +1,30 @@
 import React, { useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  Pressable,
-  Dimensions,
-} from "react-native";
+import { View, Text, StyleSheet, Pressable, Dimensions } from "react-native";
 import { theme } from "../theme";
 
 const { width } = Dimensions.get("window");
 
 const onboardingSlides = [
   {
-    emoji: "📅",
+    icon: "📅",
     title: "Shared Family Calendar",
     description:
       "Keep everyone in sync with color-coded events, symbols, and reminders that the whole family can see.",
   },
   {
-    emoji: "✅",
+    icon: "✅",
     title: "Tasks, Chores & Shopping",
     description:
       "Assign tasks, track chores with rewards, and create shared shopping lists that update in real-time.",
   },
   {
-    emoji: "🍽️",
+    icon: "🍽️",
     title: "Meals, Health & Nutrition",
     description:
       "Plan meals, scan food for nutrition info, and track your family's health with smart suggestions.",
   },
   {
-    emoji: "📁",
+    icon: "📁",
     title: "Everything in One Place",
     description:
       "Store documents, track expenses, warranties, and bills. Your family's digital vault.",
@@ -47,6 +41,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
   onComplete,
 }) => {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const slide = onboardingSlides[currentSlide];
 
   const handleNext = () => {
     if (currentSlide < onboardingSlides.length - 1) {
@@ -55,8 +50,6 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
       onComplete();
     }
   };
-
-  const slide = onboardingSlides[currentSlide];
 
   return (
     <View style={styles.screenContainer}>
@@ -68,10 +61,10 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
 
       <View style={styles.content}>
         <View style={styles.illustrationCard}>
-          <Text style={styles.emoji}>{slide.emoji}</Text>
-          <View style={styles.iconBadge}>
-            <Text style={styles.iconBadgeText}>{slide.emoji}</Text>
+          <View style={styles.iconCircle}>
+            <Text style={styles.iconText}>{slide.icon}</Text>
           </View>
+          <View style={styles.accentSpot} />
         </View>
 
         <View style={styles.textBlock}>
@@ -87,7 +80,6 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
               style={[
                 styles.dot,
                 index === currentSlide ? styles.dotActive : styles.dotInactive,
-                index !== onboardingSlides.length - 1 && styles.dotMargin,
               ]}
             />
           ))}
@@ -97,9 +89,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
       <View style={styles.footer}>
         <Pressable style={styles.primaryButton} onPress={handleNext}>
           <Text style={styles.buttonText}>
-            {currentSlide === onboardingSlides.length - 1
-              ? "Get Started →"
-              : "Next →"}
+            {currentSlide === onboardingSlides.length - 1 ? "Get Started →" : "Next →"}
           </Text>
         </Pressable>
         <Text style={styles.progressText}>
@@ -113,7 +103,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
 const styles = StyleSheet.create({
   screenContainer: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: "#e6edf9",
     paddingTop: theme.spacing.lg,
   },
   skipRow: {
@@ -131,47 +121,60 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.lg,
   },
   illustrationCard: {
-    width: width * 0.6,
-    height: width * 0.6,
+    width: width * 0.55,
+    height: width * 0.55,
+    borderRadius: 28,
     backgroundColor: theme.colors.primaryLight,
-    borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1,
-    borderColor: theme.colors.primary,
     marginBottom: theme.spacing.xl,
+    shadowColor: "#0b1f3c",
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.15,
+    shadowRadius: 18,
+    elevation: 6,
+    position: "relative",
   },
-  emoji: {
-    fontSize: 72,
-    marginBottom: theme.spacing.sm,
-  },
-  iconBadge: {
-    width: 72,
-    height: 72,
-    borderRadius: 20,
-    backgroundColor: "#ffffff",
+  iconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 18,
+    backgroundColor: theme.colors.card,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1,
-    borderColor: theme.colors.primary,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 4,
   },
-  iconBadgeText: {
-    fontSize: 32,
+  iconText: {
+    fontSize: 36,
+  },
+  accentSpot: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: "#c2d8f1",
+    position: "absolute",
+    top: 24,
+    right: width * 0.15,
+    shadowColor: "#0b1f3c",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   textBlock: {
     alignItems: "center",
+    marginBottom: theme.spacing.lg,
   },
   title: {
     fontSize: 26,
     fontWeight: "700",
     color: theme.colors.foreground,
     textAlign: "center",
-    marginBottom: theme.spacing.sm,
+    marginBottom: theme.spacing.xs,
   },
   description: {
     fontSize: 16,
@@ -181,41 +184,43 @@ const styles = StyleSheet.create({
   },
   dotRow: {
     flexDirection: "row",
-    marginTop: theme.spacing.lg,
-  },
-  dotMargin: {
-    marginRight: 8,
+    marginTop: theme.spacing.md,
   },
   dot: {
-    height: 8,
-    borderRadius: 4,
+    height: 10,
+    borderRadius: 5,
+    marginHorizontal: 6,
   },
   dotActive: {
-    width: 40,
+    width: 36,
     backgroundColor: theme.colors.primary,
   },
   dotInactive: {
-    width: 8,
+    width: 10,
     backgroundColor: theme.colors.border,
   },
   footer: {
-    paddingHorizontal: theme.spacing.lg,
-    paddingBottom: theme.spacing.xl,
+    padding: theme.spacing.lg,
+    alignItems: "center",
   },
   primaryButton: {
     backgroundColor: theme.colors.primary,
-    borderRadius: 16,
     paddingVertical: theme.spacing.md,
+    width: "85%",
+    borderRadius: 16,
     alignItems: "center",
-    justifyContent: "center",
+    shadowColor: "#0b1f3c",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 14,
+    elevation: 5,
   },
   buttonText: {
-    fontSize: 18,
-    fontWeight: "600",
     color: theme.colors.primaryForeground,
+    fontWeight: "600",
+    fontSize: 16,
   },
   progressText: {
-    textAlign: "center",
     marginTop: theme.spacing.sm,
     color: theme.colors.mutedForeground,
   },

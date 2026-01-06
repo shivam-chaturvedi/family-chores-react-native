@@ -6,7 +6,7 @@ import { enableScreens } from "react-native-screens";
 import { SplashScreen } from "../screens/SplashScreen";
 import { OnboardingScreen } from "../screens/OnboardingScreen";
 import { AuthScreen } from "../screens/AuthScreen";
-import { ForgotPasswordScreen } from "../screens/UtilityScreens";
+import { ForgotPasswordScreen } from "../screens/ForgotPasswordScreen";
 import { TabNavigator } from "./TabNavigator";
 import { RecipesScreen } from "../screens/RecipesScreen";
 import { RecipeDetailScreen } from "../screens/RecipeDetailScreen";
@@ -22,7 +22,11 @@ const Stack = createNativeStackNavigator();
 export const AppNavigator = () => (
   <NavigationContainer>
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Splash" component={SplashScreen} />
+      <Stack.Screen name="Splash">
+        {({ navigation }) => (
+          <SplashScreen onContinue={() => navigation.replace("Onboarding")} />
+        )}
+      </Stack.Screen>
       <Stack.Screen name="Onboarding">
         {({ navigation }) => (
           <OnboardingScreen

@@ -13,17 +13,20 @@ import { AppSidebar } from "../components/layout/AppSidebar";
 import { useNavigation } from "@react-navigation/native";
 import { useFamily } from "../contexts/FamilyContext";
 import { useMealPlan } from "../contexts/MealPlanContext";
-import { Button } from "../components/ui/Button";
 import { theme } from "../theme";
 import { AddEventModal } from "../components/modals/AddEventModal";
-import { AddTaskModal } from "../components/modals/AddTaskModal";
-import { AddItemModal } from "../components/modals/AddItemModal";
 import { AddMemberModal } from "../components/modals/AddMemberModal";
 import { NotificationPanel } from "../components/notifications/NotificationPanel";
 import { GettingStartedTutorial } from "../components/tutorial/GettingStartedTutorial";
 import { GlobalSearch } from "../components/search/GlobalSearch";
 
 const STORAGE_TUTORIAL_KEY = "@familychore:hasSeenTutorial";
+
+const alerts = [
+  { id: "1", title: "Grocery Running Low", detail: "Milk, Eggs, Bread needed", tone: "#f8d9a7" },
+  { id: "2", title: "LPG Refill Due", detail: "Book cylinder before Jan 15", tone: "#f8d9a7" },
+  { id: "3", title: "Warranty Expiring", detail: "TV warranty expires in 30 days", tone: "#d7e6ff" },
+];
 
 export const HomeScreen: React.FC = () => {
   const { members, activeMember, familyName, events, groceryList } = useFamily();
@@ -35,8 +38,6 @@ export const HomeScreen: React.FC = () => {
   const [showSearch, setShowSearch] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
   const [showAddEvent, setShowAddEvent] = useState(false);
-  const [showAddTask, setShowAddTask] = useState(false);
-  const [showAddItem, setShowAddItem] = useState(false);
   const [showAddMember, setShowAddMember] = useState(false);
 
   useEffect(() => {
@@ -52,131 +53,169 @@ export const HomeScreen: React.FC = () => {
     setShowTutorial(false);
   };
 
+  const quickActions = [
+    { label: "Event", icon: "📅", action: () => setShowAddEvent(true) },
+    { label: "Task", icon: "✅", action: () => setShowNotifications(true) },
+    { label: "Item", icon: "🛒", action: () => setShowAddMember(true) },
+    { label: "Recipe", icon: "🍽️", action: () => {} },
+    { label: "Document", icon: "📄", action: () => navigation.navigate("Documents" as never) },
+  ];
+
   const todayKey = new Date().toISOString().split("T")[0];
   const todayMeals = getMealsForDay(todayKey);
   const pendingGroceries = groceryList.filter((item) => !item.completed).length;
-  const quickActions = [
-    { label: "Event", icon: "📅", action: () => setShowAddEvent(true) },
-    { label: "Task", icon: "✅", action: () => setShowAddTask(true) },
-    { label: "Item", icon: "🛒", action: () => setShowAddItem(true) },
-    { label: "Member", icon: "👥", action: () => setShowAddMember(true) },
-    { label: "Recipes", icon: "🍽️", action: () => {} },
-  ];
-
-  const notifications = [
-    { id: "1", title: "Grocery Low", message: "Milk and Eggs running low", time: "2h ago" },
-    { id: "2", title: "Warranty Due", message: "TV warranty expires soon", time: "Yesterday" },
-    { id: "3", title: "School Event", message: "PTA meeting tomorrow", time: "3h ago" },
-  ];
 
   return (
     <>
-      <AppLayout style={styles.layout}>
+      <AppLayout
+        style={styles.layout}
+        showNav={false}
+        onAddPress={() => setShowAddEvent(true)}
+      >
         <ScrollView contentContainerStyle={styles.container}>
-          <View style={styles.header}>
+          <View style={styles.topBar}>
             <TouchableOpacity onPress={() => setSidebarOpen(true)} style={styles.menuButton}>
-              <Text style={styles.menuIcon}>☰</Text>
+              <Text style={styles.menuIcon}>≡</Text>
             </TouchableOpacity>
-            <View>
-              <Text style={styles.subHeader}>Today</Text>
-              <Text style={styles.title}>
-                Good {new Date().getHours() < 12 ? "Morning" : "Afternoon"}, {activeMember?.name || "Family"}
+            <View style={styles.topTitle}>
+              <Text style={styles.dateLabel}>{new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}</Text>
+              <Text style={styles.greeting}>
+                Good {new Date().getHours() < 12 ? "Morning" : "Afternoon"}, {activeMember?.name || "Me"} 👋
               </Text>
-              <Text style={styles.subtitle}>{familyName}</Text>
             </View>
-            <View style={styles.actions}>
-              <Pressable onPress={() => setShowSearch(true)} style={styles.iconButton}>
-                <Text style={styles.iconText}>🔍</Text>
+            <View style={styles.topActions}>
+              <Pressable onPress={() => setShowSearch(true)} style={styles.topIcon}>
+                <Text>🔍</Text>
               </Pressable>
-              <Pressable onPress={() => setShowNotifications(true)} style={styles.iconButton}>
-                <Text style={styles.iconText}>🔔</Text>
+              <Pressable onPress={() => setShowNotifications(true)} style={styles.topIcon}>
+                <Text>🔔</Text>
               </Pressable>
             </View>
           </View>
 
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.members}>
-            {members.map((member) => (
-              <View
-                key={member.id}
-                style={[
-                  styles.memberChip,
-                  member.isActive && styles.memberActive,
-                ]}
-              >
-                <Text style={styles.memberSymbol}>{member.symbol}</Text>
-                <Text style={styles.memberName}>{member.name}</Text>
-              </View>
-            ))}
-            <Pressable onPress={() => setShowAddMember(true)} style={styles.memberAdd}>
-              <Text style={styles.memberAddText}>+ Add</Text>
-            </Pressable>
-          </ScrollView>
+          <View style={styles.profileCard}>
+            <View style={styles.memberRow}>
+              {members.map((member) => (
+                <View key={member.id} style={[styles.memberChip, member.isActive && styles.activeMember]}>
+                  <Text style={styles.memberSymbol}>{member.symbol}</Text>
+                  <Text style={styles.memberName}>{member.name}</Text>
+                </View>
+              ))}
+            </View>
+            <View style={styles.profileActions}>
+              <Text style={styles.sectionLabel}>Family Chores</Text>
+              <Pressable style={styles.profileSetup}>
+                <Text style={styles.profileSetupText}>Setup + Add</Text>
+              </Pressable>
+            </View>
+          </View>
 
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Quick Actions</Text>
-            <View style={styles.quickActions}>
+          <View style={styles.glanceCard}>
+            <View style={styles.glanceHeader}>
+              <Text style={styles.glanceTitle}>Today at a Glance</Text>
+              <Text style={styles.glanceLink}>View Dashboard</Text>
+            </View>
+            <View style={styles.glanceStats}>
+              <View style={styles.glanceStat}>
+                <Text style={styles.glanceStatValue}>{events.length}</Text>
+                <Text style={styles.glanceStatLabel}>Events</Text>
+              </View>
+              <View style={styles.glanceStat}>
+                <Text style={styles.glanceStatValue}>{groceryList.length}</Text>
+                <Text style={styles.glanceStatLabel}>Tasks</Text>
+              </View>
+              <View style={styles.glanceStat}>
+                <Text style={styles.glanceStatValue}>{todayMeals.length}</Text>
+                <Text style={styles.glanceStatLabel}>Reminders</Text>
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.quickActionsCard}>
+            <Text style={styles.sectionLabel}>Quick Actions</Text>
+            <View style={styles.quickActionsRow}>
               {quickActions.map((action) => (
-                <Button
-                  key={action.label}
-                  variant="ghost"
-                  size="sm"
-                  onPress={action.action}
-                  style={styles.quickActionButton}
-                >
-                  <Text style={styles.quickActionText}>
-                    {action.icon} {action.label}
-                  </Text>
-                </Button>
+                <Pressable key={action.label} style={styles.quickActionItem} onPress={action.action}>
+                  <Text style={styles.quickActionIcon}>{action.icon}</Text>
+                  <Text style={styles.quickActionText}>{action.label}</Text>
+                </Pressable>
               ))}
             </View>
           </View>
 
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Today at a Glance</Text>
-            <View style={styles.statRow}>
-              <View>
-                <Text style={styles.statLabel}>Events</Text>
-                <Text style={styles.statValue}>{events.length}</Text>
-              </View>
-              <View>
-                <Text style={styles.statLabel}>Groceries</Text>
-                <Text style={styles.statValue}>{pendingGroceries} pending</Text>
-              </View>
-              <View>
-                <Text style={styles.statLabel}>Meals</Text>
-                <Text style={styles.statValue}>{todayMeals.length} planned</Text>
-              </View>
+          <View style={styles.scheduleCard}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Today's Schedule</Text>
+              <Text style={styles.sectionLink}>View All</Text>
             </View>
-          </View>
-
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Family Activity</Text>
             {events.slice(0, 3).map((event) => (
-              <View key={event.id} style={styles.eventRow}>
-                <Text style={styles.eventIcon}>{event.icon}</Text>
+              <View key={event.id} style={styles.scheduleRow}>
                 <View>
-                  <Text style={styles.eventTitle}>{event.title}</Text>
-                  <Text style={styles.eventMeta}>
-                    {event.time} · {event.location || "Home"}
+                  <Text style={styles.scheduleTitle}>{event.title}</Text>
+                  <Text style={styles.scheduleMeta}>
+                    ⏰ {event.time}
                   </Text>
+                </View>
+                <View style={styles.scheduleAvatar}>
+                  <Text>👤</Text>
                 </View>
               </View>
             ))}
-            <Button variant="outline" onPress={() => setShowNotifications(true)}>
-              View Notifications
-            </Button>
+          </View>
+
+          <View style={styles.mealsCard}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Meals Today</Text>
+              <Text style={styles.sectionLink}>Meal Plan ›</Text>
+            </View>
+            <View style={styles.mealRow}>
+              {["Breakfast", "Lunch", "Dinner"].map((meal, index) => (
+                <View key={meal} style={[styles.mealItem, index === 2 && styles.mealItemDimmed]}>
+                  <Text style={styles.mealTitle}>{meal}</Text>
+                  <Text style={styles.mealSubtitle}>Sample dish</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.alertsCard}>
+            <Text style={styles.sectionTitle}>Alerts & Reminders</Text>
+            {alerts.map((alert) => (
+              <View key={alert.id} style={[styles.alertRow, { backgroundColor: alert.tone }]}>
+                <Text style={styles.alertIcon}>⚠️</Text>
+                <View style={styles.alertText}>
+                  <Text style={styles.alertTitle}>{alert.title}</Text>
+                  <Text style={styles.alertDetail}>{alert.detail}</Text>
+                </View>
+                <Text style={styles.alertChevron}>›</Text>
+              </View>
+            ))}
+          </View>
+
+          <View style={styles.statsCard}>
+            <View style={styles.statBlock}>
+              <Text style={styles.statIcon}>🛒</Text>
+              <Text style={styles.statTitle}>Grocery</Text>
+              <Text style={styles.statValueLarge}>{pendingGroceries}</Text>
+              <Text style={styles.statMeta}>items pending</Text>
+            </View>
+            <View style={styles.statBlock}>
+              <Text style={styles.statIcon}>🛡️</Text>
+              <Text style={styles.statTitle}>Vault</Text>
+              <Text style={styles.statValueLarge}>{groceryList.length * 5}</Text>
+              <Text style={styles.statMeta}>documents</Text>
+            </View>
           </View>
         </ScrollView>
       </AppLayout>
+
       <AppSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} onNavigate={(route) => navigation.navigate(route as never)} />
 
-      <NotificationPanel open={showNotifications} onClose={() => setShowNotifications(false)} notifications={notifications} />
+      <NotificationPanel open={showNotifications} onClose={() => setShowNotifications(false)} notifications={alerts} />
       <GlobalSearch open={showSearch} onClose={() => setShowSearch(false)} />
       <GettingStartedTutorial open={showTutorial} onClose={handleTutorialClose} />
 
       <AddEventModal open={showAddEvent} onClose={() => setShowAddEvent(false)} />
-      <AddTaskModal open={showAddTask} onClose={() => setShowAddTask(false)} />
-      <AddItemModal open={showAddItem} onClose={() => setShowAddItem(false)} />
       <AddMemberModal open={showAddMember} onClose={() => setShowAddMember(false)} />
     </>
   );
@@ -188,125 +227,305 @@ const styles = StyleSheet.create({
   },
   container: {
     padding: theme.spacing.lg,
-    paddingBottom: 120,
+    paddingBottom: 160,
     backgroundColor: theme.colors.background,
   },
-  header: {
+  topBar: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     marginBottom: theme.spacing.lg,
   },
   menuButton: {
-    padding: theme.spacing.sm,
-    borderRadius: 12,
+    padding: theme.spacing.md,
+    borderRadius: 16,
     backgroundColor: theme.colors.card,
   },
   menuIcon: {
-    fontSize: 18,
+    fontSize: 20,
   },
-  subHeader: {
-    fontSize: 12,
+  topTitle: {
+    flex: 1,
+    marginHorizontal: theme.spacing.lg,
+  },
+  dateLabel: {
+    fontSize: 14,
     color: theme.colors.mutedForeground,
   },
-  title: {
-    fontSize: 22,
+  greeting: {
+    fontSize: 24,
     fontWeight: "700",
     color: theme.colors.foreground,
   },
-  subtitle: {
-    fontSize: 12,
-    color: theme.colors.mutedForeground,
-  },
-  actions: {
+  topActions: {
     flexDirection: "row",
+    gap: theme.spacing.md,
   },
-  iconButton: {
-    marginLeft: theme.spacing.sm,
-    padding: theme.spacing.sm,
-    borderRadius: 12,
-    backgroundColor: theme.colors.card,
-  },
-  iconText: {
-    fontSize: 18,
-  },
-  members: {
-    paddingVertical: theme.spacing.sm,
-  },
-  memberChip: {
-    paddingVertical: theme.spacing.sm,
-    paddingHorizontal: theme.spacing.md,
-    marginRight: theme.spacing.sm,
+  topIcon: {
+    width: 44,
+    height: 44,
     borderRadius: 16,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
     backgroundColor: theme.colors.card,
-    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
+    marginLeft: theme.spacing.sm,
   },
-  memberActive: {
-    backgroundColor: theme.colors.primaryLight,
-  },
-  memberSymbol: {
-    marginRight: 6,
-  },
-  memberName: {
-    fontWeight: "600",
-  },
-  memberAdd: {
-    paddingVertical: theme.spacing.sm,
-    paddingHorizontal: theme.spacing.md,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.primaryLight,
-  },
-  memberAddText: {
-    color: theme.colors.primary,
-    fontWeight: "600",
-  },
-  card: {
+  profileCard: {
     backgroundColor: theme.colors.card,
-    borderRadius: 20,
-    padding: theme.spacing.md,
+    borderRadius: 24,
+    padding: theme.spacing.lg,
     marginBottom: theme.spacing.lg,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    shadowColor: "#0a1a3c",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
     elevation: 4,
   },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: theme.spacing.sm,
-    color: theme.colors.foreground,
-  },
-  quickActions: {
+  memberRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
+    marginBottom: theme.spacing.lg,
   },
-  quickActionButton: {
+  memberChip: {
+    alignItems: "center",
+    padding: theme.spacing.sm,
     borderRadius: 16,
-    paddingHorizontal: theme.spacing.xl,
-    marginBottom: theme.spacing.sm,
-    marginRight: theme.spacing.sm,
+    backgroundColor: "#edf3ff",
+    marginRight: theme.spacing.lg,
   },
-  quickActionText: {
-    fontSize: 14,
+  activeMember: {
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+    paddingHorizontal: theme.spacing.md,
   },
-  statRow: {
+  memberSymbol: {
+    fontSize: 32,
+  },
+  memberName: {
+    marginTop: 4,
+    fontWeight: "600",
+  },
+  profileActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  sectionLabel: {
+    fontSize: 16,
+    color: theme.colors.foreground,
+    fontWeight: "600",
+  },
+  profileSetup: {
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    borderRadius: 12,
+    backgroundColor: "#dfe9f5",
+  },
+  profileSetupText: {
+    fontWeight: "600",
+    color: theme.colors.primary,
+  },
+  glanceCard: {
+    backgroundColor: "#0c2a48",
+    borderRadius: 24,
+    padding: theme.spacing.lg,
+    marginBottom: theme.spacing.lg,
+  },
+  glanceHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: theme.spacing.md,
+  },
+  glanceTitle: {
+    color: "#f6f9ff",
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  glanceLink: {
+    color: "#c7dfff",
+  },
+  glanceStats: {
     flexDirection: "row",
     justifyContent: "space-between",
   },
-  statLabel: {
-    color: theme.colors.mutedForeground,
-    fontSize: 12,
+  glanceStat: {
+    flex: 1,
+    backgroundColor: "#123861",
+    borderRadius: 16,
+    padding: theme.spacing.md,
+    marginHorizontal: theme.spacing.xs,
+    alignItems: "center",
   },
-  statValue: {
-    fontSize: 20,
+  glanceStatValue: {
+    color: "#ffffff",
+    fontSize: 24,
     fontWeight: "700",
-    color: theme.colors.foreground,
+  },
+  glanceStatLabel: {
+    color: "#c7dfff",
+    fontSize: 14,
+  },
+  quickActionsCard: {
+    marginBottom: theme.spacing.lg,
+  },
+  quickActionsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    flexWrap: "wrap",
+  },
+  quickActionItem: {
+    width: "18%",
+    alignItems: "center",
+    marginBottom: theme.spacing.md,
+    padding: theme.spacing.sm,
+    borderRadius: 16,
+    backgroundColor: theme.colors.card,
+    shadowColor: "#0a1a3c",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  quickActionIcon: {
+    fontSize: 24,
+    marginBottom: 6,
+  },
+  quickActionText: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  scheduleCard: {
+    backgroundColor: theme.colors.card,
+    borderRadius: 24,
+    padding: theme.spacing.lg,
+    marginBottom: theme.spacing.lg,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: theme.spacing.md,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  sectionLink: {
+    color: theme.colors.primary,
+    fontWeight: "600",
+  },
+  scheduleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#eef2fb",
+    borderRadius: 16,
+    padding: theme.spacing.md,
+    marginBottom: theme.spacing.sm,
+  },
+  scheduleTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  scheduleMeta: {
+    color: theme.colors.mutedForeground,
+    marginTop: 4,
+  },
+  scheduleAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: "#dfe9f5",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  mealsCard: {
+    backgroundColor: theme.colors.card,
+    borderRadius: 24,
+    padding: theme.spacing.lg,
+    marginBottom: theme.spacing.lg,
+  },
+  mealRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  mealItem: {
+    flex: 1,
+    backgroundColor: "#e7f8f0",
+    borderRadius: 18,
+    padding: theme.spacing.md,
+    marginRight: theme.spacing.sm,
+  },
+  mealItemDimmed: {
+    backgroundColor: "#e0e8f5",
+    marginRight: 0,
+  },
+  mealTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  mealSubtitle: {
+    color: theme.colors.mutedForeground,
+    marginTop: 4,
+  },
+  alertsCard: {
+    marginBottom: theme.spacing.lg,
+  },
+  alertRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 18,
+    padding: theme.spacing.md,
+    marginBottom: theme.spacing.sm,
+  },
+  alertIcon: {
+    fontSize: 24,
+    marginRight: theme.spacing.md,
+  },
+  alertText: {
+    flex: 1,
+  },
+  alertTitle: {
+    fontWeight: "700",
+  },
+  alertDetail: {
+    color: theme.colors.mutedForeground,
+  },
+  alertChevron: {
+    fontSize: 20,
+    color: theme.colors.mutedForeground,
+  },
+  statsCard: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: theme.spacing.lg,
+  },
+  statBlock: {
+    flex: 1,
+    backgroundColor: theme.colors.card,
+    borderRadius: 18,
+    padding: theme.spacing.lg,
+    marginRight: theme.spacing.md,
+    alignItems: "center",
+    shadowColor: "#0a1a3c",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  statIcon: {
+    fontSize: 28,
+    marginBottom: theme.spacing.sm,
+  },
+  statTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  statValueLarge: {
+    fontSize: 28,
+    fontWeight: "700",
+    marginTop: theme.spacing.sm,
+  },
+  statMeta: {
+    color: theme.colors.mutedForeground,
   },
   eventRow: {
     flexDirection: "row",

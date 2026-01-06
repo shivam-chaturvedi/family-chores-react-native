@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Modal,
   View,
@@ -6,6 +6,9 @@ import {
   Pressable,
   StyleSheet,
   ScrollView,
+  Animated,
+  useWindowDimensions,
+  TouchableWithoutFeedback,
 } from "react-native";
 import { theme } from "../../theme";
 
@@ -15,13 +18,19 @@ interface AppSidebarProps {
   onNavigate?: (route: string) => void;
 }
 
-const shortcuts = [
+const profiles = [
+  { name: "Me", icon: "👤", badge: true },
+  { name: "Partner", icon: "💑", badge: false },
+  { name: "Kids", icon: "👶", badge: false },
+];
+
+const quickLinks = [
   { label: "Documents", route: "Documents", icon: "📁" },
   { label: "Expenses", route: "Expenses", icon: "💸" },
 ];
 
 const bottomLinks = [
-  { label: "Privacy Policy", route: "Privacy", icon: "🔒" },
+  { label: "Privacy Policy", route: "Privacy", icon: "🛡️" },
   { label: "Help & Support", route: "Help", icon: "❓" },
 ];
 
@@ -30,66 +39,162 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
   onClose,
   onNavigate,
 }) => {
+  const { width } = useWindowDimensions();
+  const sidebarWidth = Math.min(width * 0.85, 360);
+  const [mounted, setMounted] = useState(open);
+  const translateX = useRef(new Animated.Value(open ? 0 : -sidebarWidth)).current;
+  const overlayOpacity = useRef(new Animated.Value(open ? 1 : 0)).current;
+
   const handleNavigate = (route: string) => {
     onNavigate?.(route);
     onClose();
   };
 
+  useEffect(() => {
+    if (open) {
+      setMounted(true);
+      Animated.parallel([
+        Animated.timing(translateX, {
+          toValue: 0,
+          duration: 280,
+          useNativeDriver: true,
+        }),
+        Animated.timing(overlayOpacity, {
+          toValue: 1,
+          duration: 280,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else if (mounted) {
+      Animated.parallel([
+        Animated.timing(translateX, {
+          toValue: -sidebarWidth,
+          duration: 220,
+          useNativeDriver: true,
+        }),
+        Animated.timing(overlayOpacity, {
+          toValue: 0,
+          duration: 220,
+          useNativeDriver: true,
+        }),
+      ]).start(() => setMounted(false));
+    }
+  }, [open, mounted, overlayOpacity, sidebarWidth, translateX]);
+
+  if (!mounted) {
+    return null;
+  }
+
   return (
-    <Modal visible={open} animationType="slide" transparent>
-      <View style={styles.overlay}>
-        <View style={styles.sidebar}>
-          <View style={styles.header}>
-            <Text style={styles.headerText}>Family Chores</Text>
-            <Pressable onPress={onClose} style={styles.closeButton}>
-              <Text style={styles.closeButtonText}>Close</Text>
+    <Modal visible={mounted} animationType="none" transparent onRequestClose={onClose}>
+      <View style={styles.modalContainer}>
+        <Animated.View style={[styles.overlay, { opacity: overlayOpacity }]} />
+        <TouchableWithoutFeedback onPress={onClose}>
+          <Animated.View
+            style={[styles.overlayTouchable, { opacity: overlayOpacity }]}
+          />
+        </TouchableWithoutFeedback>
+        <Animated.View
+          style={[
+            styles.sidebar,
+            { width: sidebarWidth, transform: [{ translateX }] },
+          ]}
+        >
+          <View style={styles.headerGradient}>
+            <Pressable onPress={onClose} style={styles.closeIcon}>
+              <Text style={styles.closeText}>×</Text>
+            </Pressable>
+            <View style={styles.profileSummary}>
+              <View style={styles.avatar}>
+                <Text style={styles.avatarIcon}>👤</Text>
+              </View>
+              <View style={styles.profileTextBlock}>
+                <Text style={styles.profileName}>Family Chores</Text>
+                <Text style={styles.profileRole}>Me</Text>
+              </View>
+            </View>
+            <Pressable
+              style={styles.settingsButton}
+              onPress={() => handleNavigate("Theme")}
+            >
+              <Text style={styles.settingsText}>⚙️ Settings</Text>
             </Pressable>
           </View>
 
           <ScrollView contentContainerStyle={styles.content}>
-            <Text style={styles.sectionTitle}>Quick Access</Text>
-            {shortcuts.map((item) => (
+            <Text style={styles.sectionLabel}>Switch Profile</Text>
+            {profiles.map((profile) => (
               <Pressable
-                key={item.route}
-                onPress={() => handleNavigate(item.route)}
-                style={styles.link}
+                key={profile.name}
+                style={[
+                  styles.profileRow,
+                  profile.badge && styles.profileRowActive,
+                ]}
               >
-                <Text style={styles.linkIcon}>{item.icon}</Text>
-                <Text style={styles.linkText}>{item.label}</Text>
+                <View style={styles.profileAvatar}>
+                  <Text style={styles.profileAvatarText}>{profile.icon}</Text>
+                </View>
+                <Text
+                  style={[
+                    styles.profileText,
+                    profile.badge && styles.profileTextActive,
+                  ]}
+                >
+                  {profile.name}
+                </Text>
+                {profile.badge && <Text style={styles.checkmark}>✓</Text>}
               </Pressable>
             ))}
 
-            <View style={styles.separator} />
+            <View style={styles.sectionDivider} />
 
-            <Text style={styles.sectionTitle}>Help & Privacy</Text>
+            <Text style={styles.sectionLabel}>Quick Access</Text>
+            {quickLinks.map((item) => (
+              <Pressable
+                key={item.route}
+                style={styles.linkRow}
+                onPress={() => handleNavigate(item.route)}
+              >
+                <Text style={styles.linkIcon}>{item.icon}</Text>
+                <Text style={styles.linkText}>{item.label}</Text>
+                <Text style={styles.linkChevron}>›</Text>
+              </Pressable>
+            ))}
+
+            <View style={styles.sectionDivider} />
+
+            <Text style={styles.sectionLabel}>Help & Safety</Text>
             {bottomLinks.map((item) => (
               <Pressable
                 key={item.route}
+                style={styles.linkRow}
                 onPress={() => handleNavigate(item.route)}
-                style={styles.link}
               >
                 <Text style={styles.linkIcon}>{item.icon}</Text>
                 <Text style={styles.linkText}>{item.label}</Text>
               </Pressable>
             ))}
           </ScrollView>
-        </View>
+        </Animated.View>
       </View>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  overlay: {
+  modalContainer: {
     flex: 1,
+    backgroundColor: "transparent",
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0,0,0,0.35)",
-    justifyContent: "flex-start",
+  },
+  overlayTouchable: {
+    ...StyleSheet.absoluteFillObject,
   },
   sidebar: {
-    width: "75%",
     backgroundColor: theme.colors.card,
-    paddingVertical: theme.spacing.lg,
-    paddingHorizontal: theme.spacing.md,
     borderBottomRightRadius: 28,
     borderTopRightRadius: 28,
     minHeight: "100%",
@@ -98,53 +203,139 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 12,
     elevation: 8,
+    overflow: "hidden",
   },
-  header: {
+  headerGradient: {
+    backgroundColor: "#0f3a6d",
+    padding: theme.spacing.lg,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+  },
+  closeIcon: {
+    position: "absolute",
+    right: theme.spacing.lg,
+    top: theme.spacing.lg,
+    padding: theme.spacing.sm,
+  },
+  closeText: {
+    color: "#f5f8ff",
+    fontSize: 22,
+  },
+  profileSummary: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: theme.spacing.md,
   },
-  headerText: {
+  profileTextBlock: {
+    marginLeft: theme.spacing.md,
+  },
+  avatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: "#1c4d87",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarIcon: {
+    fontSize: 28,
+    color: "#f5f8ff",
+  },
+  profileName: {
     fontSize: 18,
     fontWeight: "700",
-    color: theme.colors.foreground,
+    color: "#f5f8ff",
+    marginLeft: theme.spacing.md,
   },
-  closeButton: {
-    paddingHorizontal: theme.spacing.sm,
-    paddingVertical: theme.spacing.xs,
+  profileRole: {
+    color: "rgba(255,255,255,0.7)",
+    marginTop: 4,
+    marginLeft: theme.spacing.md,
   },
-  closeButtonText: {
-    color: theme.colors.primary,
+  settingsButton: {
+    marginTop: theme.spacing.md,
+    alignSelf: "flex-start",
+    backgroundColor: "#0b2b57",
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.sm,
+    borderRadius: 999,
+  },
+  settingsText: {
+    color: "#cbd6ea",
     fontWeight: "600",
   },
   content: {
-    paddingBottom: theme.spacing.xl,
+    padding: theme.spacing.lg,
   },
-  sectionTitle: {
+  sectionLabel: {
     fontSize: 12,
-    color: theme.colors.mutedForeground,
     textTransform: "uppercase",
+    color: theme.colors.mutedForeground,
     marginBottom: theme.spacing.sm,
   },
-  link: {
+  profileRow: {
     flexDirection: "row",
     alignItems: "center",
+    backgroundColor: "#edf3ff",
+    borderRadius: 16,
     paddingVertical: theme.spacing.sm,
-    borderBottomWidth: 1,
-    borderColor: theme.colors.border,
+    paddingHorizontal: theme.spacing.md,
+    marginBottom: theme.spacing.sm,
+    justifyContent: "flex-start",
   },
-  linkIcon: {
-    marginRight: theme.spacing.sm,
-    fontSize: 18,
+  profileRowActive: {
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+    backgroundColor: "#e9f0ff",
   },
-  linkText: {
-    fontSize: 15,
+  profileAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: "#e1ecff",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: theme.spacing.md,
+  },
+  profileAvatarText: {
+    fontSize: 24,
+  },
+  profileText: {
+    flex: 1,
+    fontSize: 16,
     color: theme.colors.foreground,
+    marginLeft: theme.spacing.md,
   },
-  separator: {
+  profileTextActive: {
+    fontWeight: "700",
+    color: theme.colors.primary,
+  },
+  checkmark: {
+    color: theme.colors.primary,
+    fontSize: 18,
+    marginLeft: "auto",
+  },
+  sectionDivider: {
     height: 1,
     backgroundColor: theme.colors.border,
     marginVertical: theme.spacing.md,
+  },
+  linkRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: theme.spacing.sm,
+    justifyContent: "space-between",
+  },
+  linkIcon: {
+    fontSize: 20,
+    marginRight: theme.spacing.md,
+  },
+  linkText: {
+    flex: 1,
+    fontSize: 16,
+    color: theme.colors.foreground,
+  },
+  linkChevron: {
+    color: theme.colors.mutedForeground,
+    fontSize: 18,
   },
 });

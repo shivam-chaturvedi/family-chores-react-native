@@ -33,7 +33,7 @@ export const ListsScreen: React.FC = () => {
 
   return (
     <>
-      <AppLayout>
+      <AppLayout showNav={false}>
         <ScrollView contentContainerStyle={styles.container}>
           <View style={styles.header}>
             <TouchableOpacity onPress={() => setSidebarOpen(true)} style={styles.menuButton}>

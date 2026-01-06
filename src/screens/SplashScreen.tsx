@@ -1,5 +1,5 @@
-import React from "react";
-import { View, Text, StyleSheet, Pressable } from "react-native";
+import React, { useEffect } from "react";
+import { View, Text, StyleSheet, Pressable, StatusBar } from "react-native";
 import { theme } from "../theme";
 
 interface SplashScreenProps {
@@ -7,18 +7,30 @@ interface SplashScreenProps {
 }
 
 export const SplashScreen: React.FC<SplashScreenProps> = ({ onContinue }) => {
+  useEffect(() => {
+    const timer = setTimeout(onContinue, 2000);
+    return () => clearTimeout(timer);
+  }, [onContinue]);
+
   return (
     <View style={styles.container}>
-      <View style={styles.illustration}>
-        <Text style={styles.icon}>🤝</Text>
+      <StatusBar barStyle="light-content" />
+      <View style={styles.hero}>
+        <View style={styles.logoWrapper}>
+          <Text style={styles.logoIcon}>🏠</Text>
+          <Text style={styles.logoBadge}>✓</Text>
+        </View>
+        <Text style={styles.title}>Family Chores</Text>
+        <Text style={styles.subtitle}>One app for your entire family</Text>
+        <Pressable style={styles.primaryButton} onPress={onContinue}>
+          <Text style={styles.buttonText}>Family Calendar</Text>
+        </Pressable>
+        <View style={styles.dotRow}>
+          <View style={[styles.dot, styles.dotActive]} />
+          <View style={[styles.dot, styles.dotInactive]} />
+          <View style={styles.dot} />
+        </View>
       </View>
-      <Text style={styles.title}>Family Chores</Text>
-      <Text style={styles.subtitle}>
-        Plan meals, track tasks, store documents, and keep the whole family in sync.
-      </Text>
-      <Pressable style={styles.button} onPress={onContinue}>
-        <Text style={styles.buttonText}>Launch App</Text>
-      </Pressable>
     </View>
   );
 };
@@ -26,43 +38,88 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onContinue }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: "#0c2a48",
     alignItems: "center",
     justifyContent: "center",
-    padding: theme.spacing.xl,
   },
-  illustration: {
-    width: 140,
-    height: 140,
-    borderRadius: 30,
-    backgroundColor: theme.colors.primaryLight,
+  hero: {
+    width: "100%",
+    flex: 1,
+    backgroundColor: "#0b2f58",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 32,
+    paddingVertical: 40,
+  },
+  logoWrapper: {
+    width: 96,
+    height: 96,
+    borderRadius: 28,
+    backgroundColor: theme.colors.card,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: theme.spacing.lg,
+    position: "relative",
+    elevation: 8,
   },
-  icon: {
-    fontSize: 64,
+  logoIcon: {
+    fontSize: 40,
+  },
+  logoBadge: {
+    position: "absolute",
+    bottom: -6,
+    right: -6,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#38b44a",
+    color: "#fff",
+    textAlign: "center",
+    lineHeight: 28,
+    fontWeight: "600",
   },
   title: {
+    marginTop: theme.spacing.sm,
     fontSize: 32,
     fontWeight: "700",
-    color: theme.colors.primaryForeground,
-    marginBottom: theme.spacing.sm,
+    color: "#ffffff",
+    marginBottom: theme.spacing.xs,
   },
   subtitle: {
-    textAlign: "center",
-    color: theme.colors.primaryForeground,
     fontSize: 16,
-    marginBottom: theme.spacing.xl,
+    color: "rgba(255,255,255,0.7)",
+    marginBottom: theme.spacing.md,
+    textAlign: "center",
   },
-  button: {
-    backgroundColor: theme.colors.card,
-    paddingVertical: theme.spacing.md,
-    paddingHorizontal: theme.spacing.lg,
-    borderRadius: 20,
+  primaryButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.2)",
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 999,
+    marginBottom: theme.spacing.lg,
   },
   buttonText: {
-    color: theme.colors.primary,
+    color: "#ffffff",
     fontWeight: "600",
+    fontSize: 14,
+  },
+  dotRow: {
+    flexDirection: "row",
+    marginTop: theme.spacing.md,
+  },
+  dot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: "rgba(255,255,255,0.4)",
+    marginHorizontal: 4,
+  },
+  dotActive: {
+    backgroundColor: "#ffffff",
+  },
+  dotInactive: {
+    backgroundColor: "rgba(255,255,255,0.25)",
   },
 });

@@ -57,7 +57,7 @@ export const TasksScreen: React.FC = () => {
 
   return (
     <>
-      <AppLayout>
+      <AppLayout showNav={false}>
         <ScrollView contentContainerStyle={styles.container}>
           <View style={styles.header}>
             <Pressable onPress={() => setSidebarOpen(true)} style={styles.menuButton}>

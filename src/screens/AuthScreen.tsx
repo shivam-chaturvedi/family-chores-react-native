@@ -41,8 +41,8 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
       <View style={styles.header}>
         <View style={styles.logoWrapper}>
           <View style={styles.logoCircle}>
-            <Text style={styles.logoEmoji}>🏠</Text>
-            <Text style={styles.logoShield}>🔰</Text>
+            <Text style={styles.logoIcon}>🏠</Text>
+            <Text style={styles.logoBadge}>🔰</Text>
           </View>
         </View>
         <Text style={styles.title}>Family Chores</Text>
@@ -50,96 +50,98 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
       </View>
 
       <View style={styles.formWrapper}>
-        <View style={styles.tabs}>
-          <Pressable
-            onPress={() => setIsLogin(true)}
-            style={[
-              styles.tab,
-              isLogin ? styles.tabActive : styles.tabInactive,
-            ]}
-          >
-            <Text
-              style={[
-                styles.tabText,
-                isLogin ? styles.tabTextActive : styles.tabTextInactive,
-              ]}
-            >
-              Sign In
-            </Text>
-          </Pressable>
-          <Pressable
-            onPress={() => setIsLogin(false)}
-            style={[
-              styles.tab,
-              !isLogin ? styles.tabActive : styles.tabInactive,
-            ]}
-          >
-            <Text
-              style={[
-                styles.tabText,
-                !isLogin ? styles.tabTextActive : styles.tabTextInactive,
-              ]}
-            >
-              Sign Up
-            </Text>
-          </Pressable>
-        </View>
-
         <View style={styles.card}>
-          {!isLogin && (
+          <View style={styles.tabs}>
+            <Pressable
+              onPress={() => setIsLogin(true)}
+              style={[
+                styles.tab,
+                isLogin ? styles.tabActive : styles.tabInactive,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.tabText,
+                  isLogin ? styles.tabTextActive : styles.tabTextInactive,
+                ]}
+              >
+                Sign In
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={() => setIsLogin(false)}
+              style={[
+                styles.tab,
+                !isLogin ? styles.tabActive : styles.tabInactive,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.tabText,
+                  !isLogin ? styles.tabTextActive : styles.tabTextInactive,
+                ]}
+              >
+                Sign Up
+              </Text>
+            </Pressable>
+          </View>
+
+          <View style={styles.fieldStack}>
+            {!isLogin && (
+              <View style={styles.inputRow}>
+                <Text style={styles.inputIcon}>👤</Text>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="Full Name"
+                  placeholderTextColor={theme.colors.mutedForeground}
+                  value={formData.name}
+                  onChangeText={(value) =>
+                    setFormData((prev) => ({ ...prev, name: value }))
+                  }
+                />
+              </View>
+            )}
+
             <View style={styles.inputRow}>
-              <Text style={styles.inputIcon}>👤</Text>
+              <Text style={styles.inputIcon}>✉️</Text>
               <TextInput
                 style={styles.textInput}
-                placeholder="Full Name"
+                placeholder="Email Address"
                 placeholderTextColor={theme.colors.mutedForeground}
-                value={formData.name}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                value={formData.email}
                 onChangeText={(value) =>
-                  setFormData((prev) => ({ ...prev, name: value }))
+                  setFormData((prev) => ({ ...prev, email: value }))
                 }
               />
             </View>
-          )}
 
-          <View style={styles.inputRow}>
-            <Text style={styles.inputIcon}>✉️</Text>
-            <TextInput
-              style={styles.textInput}
-              placeholder="Email Address"
-              placeholderTextColor={theme.colors.mutedForeground}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              value={formData.email}
-              onChangeText={(value) =>
-                setFormData((prev) => ({ ...prev, email: value }))
-              }
-            />
-          </View>
-
-          <View style={styles.inputRow}>
-            <Text style={styles.inputIcon}>🔒</Text>
-            <TextInput
-              style={styles.textInput}
-              placeholder="Shared Password"
-              placeholderTextColor={theme.colors.mutedForeground}
-              secureTextEntry={!showPassword}
-              value={formData.password}
-              onChangeText={(value) =>
-                setFormData((prev) => ({ ...prev, password: value }))
-              }
-            />
-            <Pressable
-              onPress={() => setShowPassword((prev) => !prev)}
-              style={styles.eyeButton}
-            >
-              <Text style={styles.eyeText}>{showPassword ? "👁️" : "🙈"}</Text>
-            </Pressable>
+            <View style={styles.inputRow}>
+              <Text style={styles.inputIcon}>🔒</Text>
+              <TextInput
+                style={styles.textInput}
+                placeholder="Shared Password"
+                placeholderTextColor={theme.colors.mutedForeground}
+                secureTextEntry={!showPassword}
+                value={formData.password}
+                onChangeText={(value) =>
+                  setFormData((prev) => ({ ...prev, password: value }))
+                }
+              />
+              <Pressable
+                onPress={() => setShowPassword((prev) => !prev)}
+                style={styles.eyeButton}
+              >
+                <Text style={styles.eyeText}>{showPassword ? "👁️" : "🙈"}</Text>
+              </Pressable>
+            </View>
           </View>
 
           {isLogin && (
             <Pressable
-              onPress={() => onForgotPassword?.()}
               style={styles.forgotButton}
+              onPress={() => onForgotPassword?.()}
             >
               <Text style={styles.forgotText}>Forgot Password?</Text>
             </Pressable>
@@ -157,23 +159,23 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
             <View style={styles.line} />
           </View>
 
-          <Pressable style={styles.outlineButton}>
+          <Pressable style={styles.googleButton}>
             <View style={styles.googleIcon}>
               <Text style={styles.googleIconText}>G</Text>
             </View>
-            <Text style={styles.outlineButtonText}>Continue with Google</Text>
+            <Text style={styles.googleButtonText}>Continue with Google</Text>
           </Pressable>
         </View>
 
         <View style={styles.infoCard}>
           <View style={styles.infoIcon}>
-            <Text style={styles.infoIconText}>🔐</Text>
+            <Text style={styles.infoIconText}>🛡️</Text>
           </View>
           <View style={styles.infoTextContainer}>
             <Text style={styles.infoTitle}>One Account, Multiple Profiles</Text>
             <Text style={styles.infoSubtitle}>
-              Add family members after signing in. Each member gets their own
-              profile with personal vault, calendar events, and shared lists.
+              Add family members after signing in. Each profile gets its own
+              vault, calendar, and shared lists.
             </Text>
           </View>
         </View>
@@ -195,10 +197,11 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: "#e6edf9",
   },
   screenContent: {
     flexGrow: 1,
+    paddingBottom: 32,
   },
   header: {
     backgroundColor: theme.colors.primary,
@@ -213,23 +216,23 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.sm,
   },
   logoCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 24,
+    width: 80,
+    height: 80,
+    borderRadius: 26,
     backgroundColor: theme.colors.card,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: theme.colors.primaryLight,
+    borderColor: "#bdd5ff",
   },
-  logoEmoji: {
-    fontSize: 30,
+  logoIcon: {
+    fontSize: 32,
   },
-  logoShield: {
+  logoBadge: {
     position: "absolute",
     right: 8,
     bottom: 6,
-    fontSize: 20,
+    fontSize: 18,
   },
   title: {
     fontSize: 28,
@@ -238,17 +241,29 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     marginTop: 4,
+    marginBottom: theme.spacing.lg,
     fontSize: 14,
-    color: "rgba(255,255,255,0.8)",
+    color: "rgba(255,255,255,0.85)",
   },
   formWrapper: {
-    flex: 1,
     paddingHorizontal: theme.spacing.lg,
-    paddingTop: theme.spacing.md,
+    marginTop: theme.spacing.md,
+  },
+  card: {
+    backgroundColor: theme.colors.card,
+    borderRadius: 24,
+    padding: theme.spacing.lg,
+    borderWidth: 1,
+    borderColor: "#dfe9f5",
+    shadowColor: "#2a4e8c",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 18,
+    elevation: 6,
   },
   tabs: {
     flexDirection: "row",
-    backgroundColor: theme.colors.muted,
+    backgroundColor: "#e3ebf9",
     borderRadius: 16,
     padding: 4,
     marginBottom: theme.spacing.md,
@@ -256,13 +271,13 @@ const styles = StyleSheet.create({
   tab: {
     flex: 1,
     paddingVertical: theme.spacing.sm,
-    borderRadius: 12,
     alignItems: "center",
+    borderRadius: 12,
   },
   tabActive: {
     backgroundColor: theme.colors.card,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowColor: "#1f3a6f",
+    shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.1,
     shadowRadius: 6,
     elevation: 3,
@@ -278,31 +293,20 @@ const styles = StyleSheet.create({
   tabTextInactive: {
     color: theme.colors.mutedForeground,
   },
-  card: {
-    backgroundColor: theme.colors.card,
-    borderRadius: 20,
-    padding: theme.spacing.lg,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 4,
+  fieldStack: {
+    marginBottom: theme.spacing.sm,
   },
   inputRow: {
     flexDirection: "row",
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: theme.colors.border,
     borderRadius: 14,
     paddingHorizontal: theme.spacing.sm,
     marginBottom: theme.spacing.sm,
-    backgroundColor: theme.colors.muted,
+    backgroundColor: "#edf3ff",
   },
   inputIcon: {
-    marginRight: 8,
-    fontSize: 16,
+    marginRight: 10,
+    fontSize: 18,
   },
   textInput: {
     flex: 1,
@@ -311,7 +315,7 @@ const styles = StyleSheet.create({
     color: theme.colors.foreground,
   },
   eyeButton: {
-    marginLeft: 4,
+    marginLeft: 6,
   },
   eyeText: {
     fontSize: 18,
@@ -345,62 +349,68 @@ const styles = StyleSheet.create({
   line: {
     flex: 1,
     height: 1,
-    backgroundColor: theme.colors.border,
+    backgroundColor: "#dfe9f5",
   },
   dividerText: {
     marginHorizontal: 8,
     color: theme.colors.mutedForeground,
     fontSize: 12,
   },
-  outlineButton: {
+  googleButton: {
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: "#dfe9f5",
     borderRadius: 16,
     paddingVertical: theme.spacing.sm,
     justifyContent: "center",
-    backgroundColor: theme.colors.card,
+    backgroundColor: "#f5f7ff",
   },
   googleIcon: {
-    width: 32,
-    height: 32,
+    width: 34,
+    height: 34,
     borderRadius: 10,
-    backgroundColor: "#f1f1f1",
+    backgroundColor: theme.colors.card,
     alignItems: "center",
     justifyContent: "center",
     marginRight: theme.spacing.sm,
+    shadowColor: "#0b1f3c",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 3,
   },
   googleIconText: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "700",
     color: theme.colors.foreground,
   },
-  outlineButtonText: {
+  googleButtonText: {
     fontWeight: "600",
     color: theme.colors.foreground,
+    fontSize: 16,
   },
   infoCard: {
     flexDirection: "row",
     alignItems: "flex-start",
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: "#dfe9f5",
     borderRadius: 16,
     padding: theme.spacing.md,
     marginTop: theme.spacing.sm,
     borderWidth: 1,
-    borderColor: theme.colors.primary,
+    borderColor: "#c4d6f6",
   },
   infoIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     backgroundColor: theme.colors.primary,
     alignItems: "center",
     justifyContent: "center",
     marginRight: theme.spacing.md,
   },
   infoIconText: {
-    fontSize: 20,
+    fontSize: 22,
     color: theme.colors.primaryForeground,
   },
   infoTextContainer: {
@@ -418,7 +428,7 @@ const styles = StyleSheet.create({
   },
   footer: {
     paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
+    paddingTop: theme.spacing.md,
   },
   footerText: {
     textAlign: "center",

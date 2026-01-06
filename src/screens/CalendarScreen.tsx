@@ -82,7 +82,7 @@ export const CalendarScreen: React.FC = () => {
 
   return (
     <>
-      <AppLayout>
+      <AppLayout showNav={false}>
         <ScrollView contentContainerStyle={styles.container}>
           <View style={styles.header}>
             <Pressable onPress={() => setShowSidebar(true)} style={styles.menuButton}>
