@@ -1,8 +1,13 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet } from "react-native";
-import { Sheet } from "../ui/Sheet";
-import { Input } from "../ui/Input";
-import { Button } from "../ui/Button";
+import {
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+
 import { theme } from "../../theme";
 
 interface AddTaskModalProps {
@@ -11,36 +16,111 @@ interface AddTaskModalProps {
 }
 
 export const AddTaskModal: React.FC<AddTaskModalProps> = ({ open, onClose }) => {
-  const [title, setTitle] = useState("");
+  const [taskName, setTaskName] = useState("");
+  const [assignee, setAssignee] = useState("");
 
   const handleSave = () => {
-    setTitle("");
+    // placeholder behavior: close modal for now
     onClose();
   };
 
   return (
-    <Sheet open={open} onClose={onClose} title="Add Task">
-      <View style={styles.field}>
-        <Text style={styles.label}>Task Title</Text>
-        <Input value={title} onChangeText={setTitle} placeholder="Clean the kitchen" />
+    <Modal visible={open} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={styles.overlay}>
+        <View style={styles.container}>
+          <Text style={styles.title}>New Task</Text>
+          <Text style={styles.label}>Task name</Text>
+          <TextInput
+            value={taskName}
+            onChangeText={setTaskName}
+            placeholder="Describe the task"
+            placeholderTextColor="#8a9abf"
+            style={styles.input}
+          />
+          <Text style={styles.label}>Assign to</Text>
+          <TextInput
+            value={assignee}
+            onChangeText={setAssignee}
+            placeholder="Who will be responsible?"
+            placeholderTextColor="#8a9abf"
+            style={styles.input}
+          />
+          <View style={styles.actions}>
+            <Pressable style={styles.secondaryButton} onPress={onClose}>
+              <Text style={styles.secondaryText}>Cancel</Text>
+            </Pressable>
+            <Pressable style={styles.primaryButton} onPress={handleSave}>
+              <Text style={styles.primaryText}>Add Task</Text>
+            </Pressable>
+          </View>
+        </View>
       </View>
-      <Button onPress={handleSave} style={styles.button}>
-        Save Task
-      </Button>
-    </Sheet>
+    </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  field: {
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(15, 23, 42, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: theme.spacing.lg,
+  },
+  container: {
+    width: "100%",
+    borderRadius: 20,
+    backgroundColor: theme.colors.card,
+    padding: theme.spacing.lg,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: "700",
     marginBottom: theme.spacing.md,
+    color: theme.colors.foreground,
   },
   label: {
-    marginBottom: theme.spacing.sm,
+    fontSize: 14,
     color: theme.colors.mutedForeground,
-    fontSize: 12,
+    marginBottom: 6,
   },
-  button: {
-    marginTop: theme.spacing.sm,
+  input: {
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.md,
+    marginBottom: theme.spacing.md,
+    color: theme.colors.foreground,
+    backgroundColor: theme.colors.background,
+  },
+  actions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+  },
+  secondaryButton: {
+    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.md,
+    borderRadius: 12,
+    marginRight: theme.spacing.sm,
+  },
+  secondaryText: {
+    color: theme.colors.mutedForeground,
+    fontWeight: "600",
+  },
+  primaryButton: {
+    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.md,
+    borderRadius: 12,
+    backgroundColor: theme.colors.primary,
+  },
+  primaryText: {
+    color: "#fff",
+    fontWeight: "600",
   },
 });

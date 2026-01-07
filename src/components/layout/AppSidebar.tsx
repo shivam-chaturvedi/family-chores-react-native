@@ -10,6 +10,7 @@ import {
   useWindowDimensions,
   TouchableWithoutFeedback,
 } from "react-native";
+import { useNavigation, NavigationProp } from "@react-navigation/native";
 import { theme } from "../../theme";
 
 interface AppSidebarProps {
@@ -45,8 +46,14 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
   const translateX = useRef(new Animated.Value(open ? 0 : -sidebarWidth)).current;
   const overlayOpacity = useRef(new Animated.Value(open ? 1 : 0)).current;
 
+  const navigation = useNavigation<NavigationProp<Record<string, undefined>>>();
+
   const handleNavigate = (route: string) => {
-    onNavigate?.(route);
+    if (onNavigate) {
+      onNavigate(route);
+    } else {
+      navigation.navigate(route as never);
+    }
     onClose();
   };
 

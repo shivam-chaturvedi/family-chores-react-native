@@ -13,13 +13,9 @@ const createUtilityScreen = (title: string, subtitle?: string) => () => (
 );
 
 export const DocumentsScreen = createUtilityScreen("Documents", "Store and organize family documents");
-export const ExpensesScreen = createUtilityScreen("Expenses", "Track bills and budgets");
-export const FamilyScreen = createUtilityScreen("Family", "Manage members and profiles");
-export const NotificationsScreen = createUtilityScreen("Notifications", "Configure alert settings");
 export const PrivacyScreen = createUtilityScreen("Privacy", "Privacy and security preferences");
-export const ThemeScreen = createUtilityScreen("Theme", "Light and dark mode controls");
 export const ExportScreen = createUtilityScreen("Export", "Download your family data");
-export const HelpScreen = createUtilityScreen("Help", "Frequently asked questions");
+export const HelpPlaceholderScreen = createUtilityScreen("Help", "Frequently asked questions");
 export const ForgotPasswordScreen = createUtilityScreen("Forgot Password", "Reset your account password");
 
 const styles = StyleSheet.create({

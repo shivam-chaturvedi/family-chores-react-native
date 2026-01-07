@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -7,117 +7,162 @@ import {
   Pressable,
 } from "react-native";
 import { AppLayout } from "../components/layout/AppLayout";
-import { AppSidebar } from "../components/layout/AppSidebar";
-import { Button } from "../components/ui/Button";
 import { theme } from "../theme";
 import { AddTaskModal } from "../components/modals/AddTaskModal";
 import { GlobalSearch } from "../components/search/GlobalSearch";
+import { useSidebar } from "../contexts/SidebarContext";
+
+interface Task {
+  id: string;
+  icon: string;
+  name: string;
+  status: "pending" | "done";
+  priority: "high" | "medium" | "low";
+  due: string;
+  assignee: string;
+  tab: string;
+}
 
 const tabs = ["My Tasks", "Family Tasks", "Kids Chores"];
 
-const sampleTasks = {
-  "My Tasks": [
-    { id: 1, icon: "📝", name: "Complete report", done: false, priority: "high", due: "Today" },
-    { id: 2, icon: "📞", name: "Call insurance", done: true, priority: "medium", due: "Today" },
-  ],
-  "Family Tasks": [
-    { id: 3, icon: "🏡", name: "Garden cleanup", done: false, priority: "low", due: "This week" },
-    { id: 4, icon: "💧", name: "Fix leak", done: true, priority: "medium", due: "Tomorrow" },
-  ],
-};
+const initialTasks: Task[] = [
+  { id: "t1", icon: "📝", name: "Complete project report", status: "pending", priority: "high", due: "Today", assignee: "You", tab: "My Tasks" },
+  { id: "t2", icon: "📞", name: "Call insurance company", status: "pending", priority: "medium", due: "Today", assignee: "You", tab: "My Tasks" },
+  { id: "t3", icon: "💊", name: "Pick up medications", status: "done", priority: "high", due: "Done", assignee: "You", tab: "My Tasks" },
+  { id: "t4", icon: "📧", name: "Reply to emails", status: "done", priority: "low", due: "Done", assignee: "You", tab: "My Tasks" },
 
-const getPriorityColor = (priority: string) => {
+  { id: "t5", icon: "🏫", name: "Sign permission slip", status: "done", priority: "high", due: "Tomorrow", assignee: "Mom", tab: "Family Tasks" },
+  { id: "t6", icon: "🛠️", name: "Fix leaky faucet", status: "pending", priority: "medium", due: "This week", assignee: "Dad", tab: "Family Tasks" },
+  { id: "t7", icon: "📦", name: "Order birthday cake", status: "pending", priority: "high", due: "In 2 days", assignee: "You", tab: "Family Tasks" },
+
+  { id: "t8", icon: "🛏️", name: "Make bed", status: "done", priority: "medium", due: "Done", assignee: "Emma", tab: "Kids Chores" },
+  { id: "t9", icon: "🐶", name: "Feed the dog", status: "pending", priority: "low", due: "Today", assignee: "Jake", tab: "Kids Chores" },
+  { id: "t10", icon: "🧺", name: "Put away laundry", status: "pending", priority: "medium", due: "This afternoon", assignee: "Emma", tab: "Kids Chores" },
+];
+
+const getPriorityStyle = (priority: Task["priority"]) => {
   switch (priority) {
     case "high":
-      return "#FF7A7A";
+      return { label: "High", color: "#f57c7c", background: "rgba(245, 124, 124, 0.15)" };
     case "medium":
-      return "#FDCB6E";
+      return { label: "Medium", color: "#f5a623", background: "rgba(245, 166, 35, 0.2)" };
     default:
-      return "#A0AEC0";
+      return { label: "Low", color: "#8fa7d7", background: "rgba(143, 167, 215, 0.25)" };
   }
 };
 
 export const TasksScreen: React.FC = () => {
   const [activeTab, setActiveTab] = useState("My Tasks");
-  const [tasks, setTasks] = useState(sampleTasks);
   const [showAddTask, setShowAddTask] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+  const { openSidebar } = useSidebar();
 
-  const currentTasks = tasks[activeTab as keyof typeof tasks] || [];
+  const [taskEntries, setTaskEntries] = useState<Task[]>(initialTasks);
 
-  const toggleTask = (id: number) => {
-    setTasks((prev) => ({
-      ...prev,
-      [activeTab]: prev[activeTab as keyof typeof prev].map((task) =>
-        task.id === id ? { ...task, done: !task.done } : task
-      ),
-    }));
+  const filteredTasks = useMemo(
+    () => taskEntries.filter((task) => task.tab === activeTab),
+    [activeTab, taskEntries]
+  );
+
+  const completedCount = filteredTasks.filter((task) => task.status === "done").length;
+  const totalCount = filteredTasks.length;
+  const progress = totalCount ? Math.round((completedCount / totalCount) * 100) : 0;
+
+  const toggleTask = (taskId: string) => {
+    setTaskEntries((prev) =>
+      prev.map((task) =>
+        task.id === taskId
+          ? { ...task, status: task.status === "done" ? "pending" : "done" }
+          : task
+      )
+    );
   };
 
   return (
     <>
-      <AppLayout showNav={false}>
+      <AppLayout showAddButton={false} showNav={false}>
         <ScrollView contentContainerStyle={styles.container}>
           <View style={styles.header}>
-            <Pressable onPress={() => setSidebarOpen(true)} style={styles.menuButton}>
+            <Pressable onPress={openSidebar} style={styles.menuButton}>
               <Text style={styles.menuIcon}>☰</Text>
             </Pressable>
             <Text style={styles.title}>Tasks</Text>
-            <View style={styles.actions}>
-              <Button variant="ghost" size="sm" onPress={() => setShowSearch(true)}>
-                Search
-              </Button>
-              <Button variant="ghost" size="sm" onPress={() => setShowAddTask(true)}>
-                Add Task
-              </Button>
+            <View style={styles.headerActions}>
+              <Pressable style={styles.roundAction} onPress={() => setShowSearch(true)}>
+                <Text style={styles.iconText}>🔍</Text>
+              </Pressable>
+              <Pressable style={styles.roundAction}>
+                <Text style={styles.iconText}>⚲</Text>
+              </Pressable>
+              <Pressable style={styles.plusAction} onPress={() => setShowAddTask(true)}>
+                <Text style={styles.plusIcon}>＋</Text>
+              </Pressable>
             </View>
           </View>
 
           <View style={styles.tabs}>
-            {tabs.map((tab) => (
-              <Pressable
-                key={tab}
-                onPress={() => setActiveTab(tab)}
-                style={[
-                  styles.tab,
-                  activeTab === tab && styles.tabActive,
-                ]}
-              >
-                <Text style={activeTab === tab ? styles.tabTextActive : styles.tabText}>
-                  {tab}
-                </Text>
-              </Pressable>
-            ))}
+            {tabs.map((tab) => {
+              const isActive = tab === activeTab;
+              return (
+                <Pressable
+                  key={tab}
+                  onPress={() => setActiveTab(tab)}
+                  style={[styles.tab, isActive && styles.tabActive]}
+                >
+                  <Text style={[styles.tabText, isActive && styles.tabTextActive]}>{tab}</Text>
+                </Pressable>
+              );
+            })}
           </View>
 
-          {activeTab === "Kids Chores" ? (
-            <View style={styles.empty}>
-              <Text style={styles.emptyText}>Kids Chores rotation will appear here.</Text>
+          <View style={styles.progressCard}>
+            <View style={styles.progressHeader}>
+              <Text style={styles.progressLabel}>Progress: {completedCount}/{totalCount}</Text>
+              <Text style={styles.progressPercent}>{progress}%</Text>
             </View>
-          ) : (
-            <View style={styles.list}>
-              {currentTasks.map((task) => (
-                <Pressable
+            <View style={styles.progressBar}>
+              <View style={[styles.progressFill, { width: `${progress}%` }]} />
+            </View>
+          </View>
+
+          <View style={styles.taskList}>
+            {filteredTasks.map((task) => {
+              const priorityStyle = getPriorityStyle(task.priority);
+              return (
+                <View
                   key={task.id}
-                  style={[styles.taskCard, task.done && styles.taskDone]}
-                  onPress={() => toggleTask(task.id)}
+                  style={[styles.taskCard, task.status === "done" && styles.taskDone]}
                 >
-                  <Text style={styles.taskIcon}>{task.icon}</Text>
-                  <View style={styles.taskBody}>
-                    <Text style={[styles.taskName, task.done && styles.taskTextDone]}>{task.name}</Text>
-                    <Text style={styles.taskMeta}>{task.due}</Text>
+                  <Pressable
+                    style={[styles.checkCircle, task.status === "done" && styles.checkCircleActive]}
+                    onPress={() => toggleTask(task.id)}
+                  >
+                    {task.status === "done" && <Text style={styles.checkMark}>✓</Text>}
+                  </Pressable>
+                  <View style={styles.taskDetails}>
+                    <Text style={[styles.taskTitle, task.status === "done" && styles.taskTextDone]}>
+                      {task.icon} {task.name}
+                    </Text>
+                    <View style={styles.metaRow}>
+                      <View style={[styles.priorityBadge, { backgroundColor: priorityStyle.background }]}>
+                        <Text style={[styles.priorityText, { color: priorityStyle.color }]}>
+                          {priorityStyle.label}
+                        </Text>
+                      </View>
+                      <Text style={styles.metaText}>⏰ {task.due}</Text>
+                      <Text style={styles.metaText}>🧑 {task.assignee}</Text>
+                    </View>
                   </View>
-                  <View style={[styles.priorityBadge, { backgroundColor: getPriorityColor(task.priority) }]}>
-                    <Text style={styles.priorityText}>{task.priority}</Text>
-                  </View>
-                </Pressable>
-              ))}
-            </View>
-          )}
+                </View>
+              );
+            })}
+          </View>
+
+          <Pressable style={styles.addNewRow}>
+            <Text style={styles.addNewText}>＋ Add new task</Text>
+          </Pressable>
         </ScrollView>
       </AppLayout>
-      <AppSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <GlobalSearch open={showSearch} onClose={() => setShowSearch(false)} />
       <AddTaskModal open={showAddTask} onClose={() => setShowAddTask(false)} />
     </>
@@ -128,6 +173,7 @@ const styles = StyleSheet.create({
   container: {
     padding: theme.spacing.lg,
     paddingBottom: 120,
+    backgroundColor: theme.colors.background,
   },
   header: {
     flexDirection: "row",
@@ -136,21 +182,65 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.md,
   },
   menuButton: {
-    padding: theme.spacing.sm,
+    width: 40,
+    height: 40,
     borderRadius: 12,
     backgroundColor: theme.colors.card,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#0a1a3c",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   menuIcon: {
-    fontSize: 18,
+    fontSize: 20,
   },
   title: {
-    fontSize: 24,
+    flex: 1,
+    fontSize: 26,
     fontWeight: "700",
     color: theme.colors.foreground,
+    marginLeft: theme.spacing.md,
   },
-  actions: {
+  headerActions: {
     flexDirection: "row",
+    alignItems: "center",
     gap: theme.spacing.sm,
+  },
+  roundAction: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: theme.colors.card,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#0a1a3c",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  iconText: {
+    fontSize: 18,
+  },
+  plusAction: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: theme.colors.primaryForeground,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#0a1a3c",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  plusIcon: {
+    fontSize: 28,
+    color: theme.colors.primary,
   },
   tabs: {
     flexDirection: "row",
@@ -175,60 +265,115 @@ const styles = StyleSheet.create({
   tabTextActive: {
     color: theme.colors.foreground,
   },
-  list: {
-    marginTop: theme.spacing.sm,
+  progressCard: {
+    backgroundColor: theme.colors.card,
+    borderRadius: 20,
+    padding: theme.spacing.md,
+    shadowColor: "#0a1a3c",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 4,
+    marginBottom: theme.spacing.lg,
+  },
+  progressHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: theme.spacing.sm,
+  },
+  progressLabel: {
+    fontWeight: "600",
+    color: theme.colors.foreground,
+  },
+  progressPercent: {
+    fontWeight: "600",
+    color: theme.colors.mutedForeground,
+  },
+  progressBar: {
+    height: 10,
+    backgroundColor: theme.colors.muted,
+    borderRadius: 6,
+    overflow: "hidden",
+  },
+  progressFill: {
+    height: "100%",
+    backgroundColor: theme.colors.primary,
+    borderRadius: 6,
+  },
+  taskList: {
+    marginBottom: theme.spacing.lg,
   },
   taskCard: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     backgroundColor: theme.colors.card,
-    borderRadius: 18,
-    padding: theme.spacing.sm,
+    borderRadius: 22,
+    padding: theme.spacing.md,
     marginBottom: theme.spacing.sm,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
+    shadowColor: "#0a1a3c",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
     elevation: 3,
   },
   taskDone: {
     opacity: 0.6,
   },
-  taskIcon: {
-    fontSize: 20,
-    marginRight: theme.spacing.sm,
+  checkCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: theme.colors.mutedForeground,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: theme.spacing.md,
   },
-  taskBody: {
+  checkCircleActive: {
+    backgroundColor: "#8bc34a",
+    borderColor: "#8bc34a",
+  },
+  checkMark: {
+    fontSize: 18,
+    color: "#fff",
+  },
+  taskDetails: {
     flex: 1,
   },
-  taskName: {
-    fontWeight: "600",
+  taskTitle: {
+    fontSize: 16,
+    fontWeight: "700",
     color: theme.colors.foreground,
+    marginBottom: 6,
   },
   taskTextDone: {
     textDecorationLine: "line-through",
+    color: theme.colors.mutedForeground,
   },
-  taskMeta: {
+  metaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
+  },
+  priorityBadge: {
+    borderRadius: 999,
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: 4,
+  },
+  priorityText: {
+    fontWeight: "700",
+  },
+  metaText: {
     fontSize: 12,
     color: theme.colors.mutedForeground,
   },
-  priorityBadge: {
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: 4,
-    borderRadius: 12,
+  addNewRow: {
+    marginTop: theme.spacing.sm,
+    alignSelf: "center",
   },
-  priorityText: {
-    fontSize: 10,
+  addNewText: {
+    color: theme.colors.primary,
     fontWeight: "700",
-    color: "#111",
-    textTransform: "capitalize",
-  },
-  empty: {
-    padding: theme.spacing.xl,
-    alignItems: "center",
-  },
-  emptyText: {
-    color: theme.colors.mutedForeground,
-    fontSize: 14,
+    fontSize: 18,
   },
 });

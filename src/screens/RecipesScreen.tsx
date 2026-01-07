@@ -4,91 +4,191 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
   TextInput,
+  Pressable,
 } from "react-native";
 import { AppLayout } from "../components/layout/AppLayout";
-import { theme } from "../theme";
-import { recipes } from "../data/recipes";
-import { Button } from "../components/ui/Button";
-import { AppSidebar } from "../components/layout/AppSidebar";
 import { GlobalSearch } from "../components/search/GlobalSearch";
+import { theme } from "../theme";
+import { useSidebar } from "../contexts/SidebarContext";
+
+type Recipe = {
+  id: number;
+  name: string;
+  time: string;
+  servings: number;
+  items: number;
+  tags: string[];
+  emoji: string;
+  rating: string;
+};
+
+const recipeData: Recipe[] = [
+  {
+    id: 1,
+    name: "Pasta Primavera",
+    time: "20 min",
+    servings: 4,
+    items: 10,
+    tags: ["Quick", "Kids Friendly"],
+    emoji: "🍝",
+    rating: "20%",
+  },
+  {
+    id: 2,
+    name: "Chicken Biryani",
+    time: "45 min",
+    servings: 6,
+    items: 18,
+    tags: ["High Protein", "Spicy"],
+    emoji: "🍛",
+    rating: "18%",
+  },
+  {
+    id: 3,
+    name: "Fruit Smoothie Bowl",
+    time: "10 min",
+    servings: 2,
+    items: 8,
+    tags: ["Healthy", "Low Sugar"],
+    emoji: "🥣",
+    rating: "20%",
+  },
+  {
+    id: 4,
+    name: "Paneer Butter Masala",
+    time: "30 min",
+    servings: 4,
+    items: 12,
+    tags: ["High Protein", "Vegetarian"],
+    emoji: "🍛",
+    rating: "15%",
+  },
+];
+
+const preferences = [
+  "Vegetarian",
+  "High Protein",
+  "Low Sugar",
+  "Quick Meals",
+  "Kids Friendly",
+  "Healthy",
+];
+
+const quickMeals = recipeData.slice(0, 3);
+
+const tabs = ["For You", "All Recipes", "Collections"];
 
 export const RecipesScreen: React.FC = () => {
-  const [query, setQuery] = useState("");
+  const { openSidebar } = useSidebar();
   const [showSearch, setShowSearch] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [saved, setSaved] = useState<number[]>(recipes.filter((r) => r.saved).map((r) => r.id));
+  const [activeTab, setActiveTab] = useState("For You");
+  const [query, setQuery] = useState("");
 
   const filtered = useMemo(() => {
-    return recipes.filter((recipe) =>
+    return recipeData.filter((recipe) =>
       recipe.name.toLowerCase().includes(query.toLowerCase())
     );
   }, [query]);
-
-  const toggleSaved = (recipeId: number) => {
-    setSaved((prev) =>
-      prev.includes(recipeId) ? prev.filter((id) => id !== recipeId) : [...prev, recipeId]
-    );
-  };
 
   return (
     <>
       <AppLayout>
         <ScrollView contentContainerStyle={styles.container}>
-          <View style={styles.header}>
-            <TouchableOpacity onPress={() => setSidebarOpen(true)} style={styles.menuButton}>
+          <View style={styles.headerRow}>
+            <Pressable onPress={openSidebar} style={styles.menuButton}>
               <Text style={styles.menuIcon}>☰</Text>
-            </TouchableOpacity>
+            </Pressable>
             <Text style={styles.title}>Recipes</Text>
-            <View style={styles.actions}>
-              <Button variant="ghost" size="sm" onPress={() => setShowSearch(true)}>
-                Search
-              </Button>
+            <View style={styles.headerActions}>
+              <Pressable style={styles.pillButton}>
+                <Text style={styles.pillIcon}>📅</Text>
+                <Text style={styles.pillText}>Meal Plan</Text>
+              </Pressable>
+              <Pressable style={styles.fabButton}>
+                <Text style={styles.plus}>＋</Text>
+              </Pressable>
             </View>
           </View>
 
-          <View style={styles.searchRow}>
-            <TextInput
-              style={styles.input}
-              placeholder="Filter recipes"
-              placeholderTextColor={theme.colors.mutedForeground}
-              value={query}
-              onChangeText={setQuery}
-            />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search recipes..."
+            placeholderTextColor={theme.colors.mutedForeground}
+            value={query}
+            onChangeText={setQuery}
+          />
+
+          <View style={styles.tabRow}>
+            {tabs.map((tab) => {
+              const active = tab === activeTab;
+              return (
+                <Pressable
+                  key={tab}
+                  style={[styles.tabPill, active && styles.tabActive]}
+                  onPress={() => setActiveTab(tab)}
+                >
+                  <Text style={[styles.tabText, active && styles.tabTextActive]}>{tab}</Text>
+                </Pressable>
+              );
+            })}
           </View>
 
-          <View style={styles.grid}>
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Your Preferences</Text>
+            <View style={styles.tagGroup}>
+              {preferences.map((tag) => (
+                <View key={tag} style={styles.prefTag}>
+                  <Text style={styles.prefText}>{tag}</Text>
+                </View>
+              ))}
+            </View>
+            <Text style={styles.groceryNote}>📦 2 ingredients available from your grocery list</Text>
+          </View>
+
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Recommended For You</Text>
             {filtered.map((recipe) => (
-              <TouchableOpacity key={recipe.id} style={styles.card}>
-                <View style={styles.cardHeader}>
-                  <Text style={styles.badge}>{recipe.image}</Text>
-                  <Button
-                    variant={saved.includes(recipe.id) ? "primary" : "outline"}
-                    size="sm"
-                    onPress={() => toggleSaved(recipe.id)}
-                    style={styles.saveButton}
-                  >
-                    {saved.includes(recipe.id) ? "Saved" : "Save"}
-                  </Button>
+              <View key={recipe.id} style={styles.recommendRow}>
+                <View style={styles.recommendLeft}>
+                  <Text style={styles.recommendEmoji}>{recipe.emoji}</Text>
+                  <View>
+                    <Text style={styles.recommendTitle}>{recipe.name}</Text>
+                    <Text style={styles.recommendMeta}>
+                      {recipe.time} · {recipe.servings} servings · {recipe.items} items
+                    </Text>
+                  </View>
                 </View>
-                <Text style={styles.cardTitle}>{recipe.name}</Text>
-                <Text style={styles.cardMeta}>
-                  {recipe.time} · serves {recipe.servings}
-                </Text>
-                <View style={styles.tagRow}>
-                  {recipe.tags.map((tag) => (
-                    <View key={tag} style={styles.tag}>
-                      <Text style={styles.tagText}>{tag}</Text>
-                    </View>
-                  ))}
-                </View>
-              </TouchableOpacity>
+                <Text style={styles.recommendBadge}>{recipe.rating}</Text>
+                <Text style={styles.chevron}>›</Text>
+              </View>
             ))}
+          </View>
+
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Quick Meals (Under 20 min)</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {quickMeals.map((recipe) => (
+                <View key={recipe.id} style={styles.quickCard}>
+                  <Text style={styles.recommendEmoji}>{recipe.emoji}</Text>
+                  <Text style={styles.recommendTitle}>{recipe.name}</Text>
+                  <Text style={styles.recommendMeta}>{recipe.time}</Text>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+
+          <View style={styles.planRow}>
+            <View>
+              <Text style={styles.planTitle}>Plan your week's meals</Text>
+              <Text style={styles.planMeta}>Auto-generate grocery lists from recipes</Text>
+            </View>
+            <Pressable style={styles.planButton}>
+              <Text style={styles.planButtonText}>Plan Now</Text>
+            </Pressable>
           </View>
         </ScrollView>
       </AppLayout>
-      <AppSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <GlobalSearch open={showSearch} onClose={() => setShowSearch(false)} />
     </>
   );
@@ -98,91 +198,217 @@ const styles = StyleSheet.create({
   container: {
     padding: theme.spacing.lg,
     paddingBottom: 120,
+    backgroundColor: theme.colors.background,
   },
-  header: {
+  headerRow: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: theme.spacing.md,
   },
   menuButton: {
-    padding: theme.spacing.sm,
-    borderRadius: 12,
+    width: 42,
+    height: 42,
+    borderRadius: 14,
     backgroundColor: theme.colors.card,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#0a1a3c",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
   },
   menuIcon: {
-    fontSize: 18,
+    fontSize: 20,
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: "700",
     color: theme.colors.foreground,
     marginLeft: theme.spacing.md,
   },
-  actions: {
+  headerActions: {
     flexDirection: "row",
+    alignItems: "center",
     marginLeft: "auto",
+    gap: theme.spacing.sm,
   },
-  searchRow: {
-    marginBottom: theme.spacing.md,
-  },
-  input: {
-    height: 46,
-    borderRadius: 14,
+  pillButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    backgroundColor: theme.colors.muted,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    paddingHorizontal: theme.spacing.sm,
+  },
+  pillIcon: {
+    marginRight: theme.spacing.xs,
+  },
+  pillText: {
+    fontWeight: "600",
     color: theme.colors.foreground,
   },
-  grid: {
-    flexDirection: "column",
-    gap: theme.spacing.md,
+  fabButton: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: theme.colors.primary,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  plus: {
+    fontSize: 28,
+    color: theme.colors.primaryForeground,
+  },
+  searchInput: {
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: theme.colors.muted,
+    paddingHorizontal: theme.spacing.md,
+    fontSize: 16,
+    marginBottom: theme.spacing.md,
+  },
+  tabRow: {
+    flexDirection: "row",
+    backgroundColor: theme.colors.muted,
+    borderRadius: 18,
+    padding: 4,
+    marginBottom: theme.spacing.md,
+  },
+  tabPill: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: theme.spacing.sm,
+    borderRadius: 14,
+  },
+  tabActive: {
+    backgroundColor: theme.colors.card,
+  },
+  tabText: {
+    color: theme.colors.mutedForeground,
+    fontWeight: "600",
+  },
+  tabTextActive: {
+    color: theme.colors.foreground,
   },
   card: {
     backgroundColor: theme.colors.card,
-    borderRadius: 20,
+    borderRadius: 24,
     padding: theme.spacing.md,
     marginBottom: theme.spacing.md,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
+    shadowColor: "#0a1a3c",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 14,
+    elevation: 4,
   },
-  cardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: theme.spacing.sm,
-  },
-  badge: {
-    fontSize: 28,
-  },
-  saveButton: {
-    paddingHorizontal: theme.spacing.lg,
-  },
-  cardTitle: {
+  sectionTitle: {
     fontSize: 18,
-    fontWeight: "600",
-    marginBottom: theme.spacing.xs,
-  },
-  cardMeta: {
-    color: theme.colors.mutedForeground,
-    fontSize: 12,
+    fontWeight: "700",
+    color: theme.colors.foreground,
     marginBottom: theme.spacing.sm,
   },
-  tagRow: {
+  tagGroup: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: theme.spacing.sm,
+    marginBottom: theme.spacing.sm,
   },
-  tag: {
-    backgroundColor: theme.colors.muted,
-    paddingHorizontal: theme.spacing.sm,
-    paddingVertical: 4,
+  prefTag: {
+    backgroundColor: theme.colors.background,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: 6,
     borderRadius: 12,
   },
-  tagText: {
-    fontSize: 12,
+  prefText: {
+    fontWeight: "600",
+    color: theme.colors.mutedForeground,
+  },
+  groceryNote: {
+    color: theme.colors.mutedForeground,
+    fontSize: 14,
+  },
+  recommendRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: theme.colors.muted,
+    borderRadius: 16,
+    padding: theme.spacing.sm,
+    marginBottom: theme.spacing.sm,
+  },
+  recommendLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  recommendEmoji: {
+    fontSize: 28,
+    marginRight: theme.spacing.md,
+  },
+  recommendTitle: {
+    fontSize: 16,
+    fontWeight: "700",
     color: theme.colors.foreground,
+  },
+  recommendMeta: {
+    color: theme.colors.mutedForeground,
+    fontSize: 12,
+  },
+  recommendBadge: {
+    backgroundColor: "#7b8aac",
+    color: "#fff",
+    borderRadius: 999,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: 6,
+    fontSize: 12,
+    marginRight: theme.spacing.sm,
+  },
+  chevron: {
+    fontSize: 20,
+    color: theme.colors.mutedForeground,
+  },
+  quickCard: {
+    width: 160,
+    minHeight: 120,
+    backgroundColor: theme.colors.muted,
+    borderRadius: 20,
+    padding: theme.spacing.sm,
+    marginRight: theme.spacing.sm,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  planRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: theme.colors.card,
+    padding: theme.spacing.md,
+    borderRadius: 24,
+    shadowColor: "#0a1a3c",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 3,
+    justifyContent: "space-between",
+  },
+  planTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: theme.colors.foreground,
+  },
+  planMeta: {
+    color: theme.colors.mutedForeground,
+    fontSize: 14,
+  },
+  planButton: {
+    backgroundColor: theme.colors.primary,
+    borderRadius: 999,
+    paddingVertical: 10,
+    paddingHorizontal: theme.spacing.md,
+  },
+  planButtonText: {
+    color: theme.colors.primaryForeground,
+    fontWeight: "700",
   },
 });

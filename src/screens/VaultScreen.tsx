@@ -8,10 +8,10 @@ import {
   TextInput,
 } from "react-native";
 import { AppLayout } from "../components/layout/AppLayout";
-import { AppSidebar } from "../components/layout/AppSidebar";
 import { useFamily } from "../contexts/FamilyContext";
 import { theme } from "../theme";
 import { GlobalSearch } from "../components/search/GlobalSearch";
+import { useSidebar } from "../contexts/SidebarContext";
 
 const categories = [
   { id: "certificate", label: "Certificates" },
@@ -22,8 +22,8 @@ const categories = [
 export const VaultScreen: React.FC = () => {
   const { globalVault } = useFamily();
   const [searchQuery, setSearchQuery] = useState("");
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+  const { openSidebar } = useSidebar();
 
   const filteredDocs = globalVault.filter((doc) =>
     doc.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -34,7 +34,7 @@ export const VaultScreen: React.FC = () => {
       <AppLayout>
         <ScrollView contentContainerStyle={styles.container}>
           <View style={styles.header}>
-            <TouchableOpacity onPress={() => setSidebarOpen(true)} style={styles.menuButton}>
+            <TouchableOpacity onPress={openSidebar} style={styles.menuButton}>
               <Text style={styles.menuIcon}>☰</Text>
             </TouchableOpacity>
             <Text style={styles.title}>Family Vault</Text>
@@ -76,7 +76,6 @@ export const VaultScreen: React.FC = () => {
           </View>
         </ScrollView>
       </AppLayout>
-      <AppSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <GlobalSearch open={showSearch} onClose={() => setShowSearch(false)} />
     </>
   );

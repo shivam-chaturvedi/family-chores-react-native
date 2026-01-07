@@ -6,6 +6,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { theme } from "./src/theme";
 import { FamilyProvider } from "./src/contexts/FamilyContext";
 import { MealPlanProvider } from "./src/contexts/MealPlanContext";
+import { SidebarProvider } from "./src/contexts/SidebarContext";
 import { ToastProvider } from "./src/components/ui/Toast";
 import { AppNavigator } from "./src/navigation/AppNavigator";
 
@@ -14,16 +15,18 @@ const App = () => {
     <SafeAreaProvider>
       <FamilyProvider>
         <MealPlanProvider>
-          <ToastProvider>
-            <StatusBar
-              barStyle="dark-content"
-              backgroundColor={theme.colors.background}
-              animated
-            />
-            <View style={styles.appWrapper}>
-              <AppNavigator />
-            </View>
-          </ToastProvider>
+          <SidebarProvider>
+            <ToastProvider>
+              <StatusBar
+                barStyle="dark-content"
+                backgroundColor={theme.colors.background}
+                animated
+              />
+              <View style={styles.appWrapper}>
+                <AppNavigator />
+              </View>
+            </ToastProvider>
+          </SidebarProvider>
         </MealPlanProvider>
       </FamilyProvider>
     </SafeAreaProvider>

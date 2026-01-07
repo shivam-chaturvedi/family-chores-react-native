@@ -1,80 +1,110 @@
-import React from "react";
-import { Pressable, Text, StyleSheet } from "react-native";
+import { ReactNode } from "react";
+import {
+  Pressable,
+  PressableProps,
+  PressableStateCallbackType,
+  StyleSheet,
+  Text,
+} from "react-native";
+
 import { theme } from "../../theme";
 
-type ButtonVariant = "primary" | "ghost" | "outline";
+export type ButtonVariant = "primary" | "ghost";
+export type ButtonSize = "sm" | "md" | "lg";
 
-interface ButtonProps {
-  children: React.ReactNode;
+interface ButtonProps extends Omit<PressableProps, "style"> {
   variant?: ButtonVariant;
-  size?: "sm" | "md" | "lg";
-  onPress?: () => void;
-  style?: object;
+  size?: ButtonSize;
+  children: ReactNode;
+  style?: PressableProps["style"];
 }
 
-const sizeMap = {
-  sm: { paddingVertical: 6 },
-  md: { paddingVertical: 10 },
-  lg: { paddingVertical: 14 },
-};
-
-export const Button: React.FC<ButtonProps> = ({
-  children,
+export const Button = ({
   variant = "primary",
   size = "md",
-  onPress,
-  style = {},
-}) => {
-  const variantStyles = {
-    primary: [styles.primary, styles.primaryText],
-    ghost: [styles.ghost, styles.ghostText],
-    outline: [styles.outline, styles.outlineText],
+  style,
+  children,
+  ...props
+}: ButtonProps) => {
+  const textStyle = [
+    styles.text,
+    variant === "ghost" ? styles.textGhost : styles.textPrimary,
+    size === "sm" && styles.textSmall,
+    size === "lg" && styles.textLarge,
+  ];
+
+  const pressableStyle = ({ pressed }: PressableStateCallbackType) => {
+    const baseStyles = [
+      styles.button,
+      variant === "primary" ? styles.primary : styles.ghost,
+      size === "sm" ? styles.sm : size === "lg" ? styles.lg : styles.md,
+      pressed && variant === "primary" ? styles.primaryPressed : null,
+    ];
+
+    const customStyle =
+      typeof style === "function" ? style({ pressed }) : style;
+
+    return [...baseStyles, customStyle];
   };
 
   return (
     <Pressable
-      onPress={onPress}
-      style={[
-        styles.button,
-        sizeMap[size],
-        variantStyles[variant][0],
-        style,
-      ]}
+      style={pressableStyle}
+      android_ripple={{
+        color: variant === "primary" ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.1)",
+      }}
+      {...props}
     >
-      <Text style={[styles.text, variantStyles[variant][1]]}>{children}</Text>
+      <Text style={textStyle}>{children}</Text>
     </Pressable>
   );
 };
 
 const styles = StyleSheet.create({
   button: {
-    borderRadius: 16,
-    alignItems: "center",
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
     justifyContent: "center",
-    paddingHorizontal: theme.spacing.lg,
-  },
-  text: {
-    fontWeight: "600",
-    fontSize: 16,
+    alignItems: "center",
+    flexDirection: "row",
   },
   primary: {
     backgroundColor: theme.colors.primary,
   },
-  primaryText: {
-    color: theme.colors.primaryForeground,
-  },
   ghost: {
-    backgroundColor: theme.colors.muted,
+    backgroundColor: "transparent",
+    borderColor: "transparent",
   },
-  ghostText: {
-    color: theme.colors.foreground,
+  primaryPressed: {
+    opacity: 0.85,
   },
-  outline: {
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.card,
+  md: {
+    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.md,
   },
-  outlineText: {
-    color: theme.colors.foreground,
+  sm: {
+    paddingVertical: theme.spacing.xs,
+    paddingHorizontal: theme.spacing.sm,
+  },
+  lg: {
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.lg,
+  },
+  text: {
+    fontWeight: "600",
+    fontSize: 14,
+  },
+  textPrimary: {
+    color: "#fff",
+  },
+  textGhost: {
+    color: theme.colors.primary,
+  },
+  textSmall: {
+    fontSize: 12,
+  },
+  textLarge: {
+    fontSize: 16,
   },
 });

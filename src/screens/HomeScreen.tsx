@@ -9,7 +9,6 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AppLayout } from "../components/layout/AppLayout";
-import { AppSidebar } from "../components/layout/AppSidebar";
 import { useNavigation } from "@react-navigation/native";
 import { useFamily } from "../contexts/FamilyContext";
 import { useMealPlan } from "../contexts/MealPlanContext";
@@ -19,6 +18,7 @@ import { AddMemberModal } from "../components/modals/AddMemberModal";
 import { NotificationPanel } from "../components/notifications/NotificationPanel";
 import { GettingStartedTutorial } from "../components/tutorial/GettingStartedTutorial";
 import { GlobalSearch } from "../components/search/GlobalSearch";
+import { useSidebar } from "../contexts/SidebarContext";
 
 const STORAGE_TUTORIAL_KEY = "@familychore:hasSeenTutorial";
 
@@ -32,8 +32,7 @@ export const HomeScreen: React.FC = () => {
   const { members, activeMember, familyName, events, groceryList } = useFamily();
   const { plannedMeals, getMealsForDay } = useMealPlan();
   const navigation = useNavigation();
-
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { openSidebar } = useSidebar();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
@@ -74,7 +73,7 @@ export const HomeScreen: React.FC = () => {
       >
         <ScrollView contentContainerStyle={styles.container}>
           <View style={styles.topBar}>
-            <TouchableOpacity onPress={() => setSidebarOpen(true)} style={styles.menuButton}>
+            <TouchableOpacity onPress={openSidebar} style={styles.menuButton}>
               <Text style={styles.menuIcon}>≡</Text>
             </TouchableOpacity>
             <View style={styles.topTitle}>
@@ -209,7 +208,6 @@ export const HomeScreen: React.FC = () => {
         </ScrollView>
       </AppLayout>
 
-      <AppSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} onNavigate={(route) => navigation.navigate(route as never)} />
 
       <NotificationPanel open={showNotifications} onClose={() => setShowNotifications(false)} notifications={alerts} />
       <GlobalSearch open={showSearch} onClose={() => setShowSearch(false)} />

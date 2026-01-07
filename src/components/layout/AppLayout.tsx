@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useCallback } from "react";
 import { View, StyleSheet, Pressable, Text } from "react-native";
+import { NavigationProp, useNavigation } from "@react-navigation/native";
 import { theme } from "../../theme";
-import { BottomNavigation } from "./BottomNavigation";
+import { BottomNavigation, BottomNavRoute } from "./BottomNavigation";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -9,6 +10,8 @@ interface AppLayoutProps {
   showAddButton?: boolean;
   onAddPress?: () => void;
   style?: object;
+  navActiveRoute?: BottomNavRoute;
+  navOnNavigate?: (route: BottomNavRoute) => void;
 }
 
 export const AppLayout: React.FC<AppLayoutProps> = ({
@@ -17,7 +20,22 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
   showAddButton = true,
   onAddPress = () => {},
   style = {},
+  navActiveRoute,
+  navOnNavigate,
 }) => {
+  type MainTabsParamList = {
+    MainTabs: { screen?: BottomNavRoute };
+  };
+
+  const navigation = useNavigation<NavigationProp<MainTabsParamList>>();
+
+  const handleNavigate = useCallback(
+    (route: BottomNavRoute) => {
+      navigation.navigate("MainTabs", { screen: route });
+    },
+    [navigation]
+  );
+
   return (
     <View style={[styles.container, style]}>
       <View style={styles.content}>{children}</View>
@@ -26,7 +44,12 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           <Text style={styles.addIcon}>＋</Text>
         </Pressable>
       )}
-      {showNav && <BottomNavigation />}
+      {showNav && (
+        <BottomNavigation
+          activeRoute={navActiveRoute}
+          onNavigate={navOnNavigate ?? handleNavigate}
+        />
+      )}
     </View>
   );
 };
