@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Modal,
   Pressable,
@@ -7,278 +7,463 @@ import {
   Text,
   TextInput,
   View,
+  Switch,
+  Platform,
 } from "react-native";
-
 import { theme } from "../../theme";
-import { useSidebar } from "../../contexts/SidebarContext";
-
-const iconOptions = [
-  "📅",
-  "🎂",
-  "🏠",
-  "💼",
-  "🏥",
-  "🛒",
-  "🎉",
-  "🏆",
-  "🎬",
-  "✈️",
-  "🍽️",
-  "👨‍👩‍👧",
-  "💻",
-  "☎️",
-  "🎵",
-  "🏡",
-];
-
-const colorOptions = ["#1f4c85", "#1c9b5f", "#f5a623", "#f04fa3", "#8f5bff", "#e01e2b"];
-
-const assignees = [
-  { id: "me", label: "Me", icon: "🧑" },
-  { id: "partner", label: "Partner", icon: "💑" },
-  { id: "kids", label: "Kids", icon: "👶" },
-];
+import { AppIcon, AppIconName } from "../ui/AppIcon";
+import { useFamily } from "../../contexts/FamilyContext";
 
 interface AddEventModalProps {
   open: boolean;
-  onClose: () => void;
+  onOpenChange: (open: boolean) => void;
+  initialDate?: string;
+  initialTime?: string;
 }
 
-export const AddEventModal: React.FC<AddEventModalProps> = ({ open, onClose }) => {
-  const { closeSidebar } = useSidebar();
-  const [eventName, setEventName] = useState("");
+const eventIcons: string[] = [
+  "📅", "🎂", "🏫", "💼", "🏥", "🛒", "🎉", "🏋️", "🎬", "✈️", "🍽️", "👨‍👩‍👧", "💻", "📞", "🎵", "🏠"
+];
+
+const eventColors = [
+  { name: "Blue", value: "member-blue", dot: "#3b82f6" },
+  { name: "Green", value: "member-green", dot: "#22c55e" },
+  { name: "Orange", value: "member-orange", dot: "#f97316" },
+  { name: "Pink", value: "member-pink", dot: "#ec4899" },
+  { name: "Purple", value: "member-purple", dot: "#8b5cf6" },
+  { name: "Red", value: "member-red", dot: "#ef4444" },
+];
+
+const repeatOptions = [
+  { value: "never", label: "Never repeats" },
+  { value: "daily", label: "Every day" },
+  { value: "weekly", label: "Every week" },
+  { value: "biweekly", label: "Every 2 weeks" },
+  { value: "monthly", label: "Every month" },
+  { value: "yearly", label: "Every year" },
+  { value: "weekday", label: "Every weekday (Mon-Fri)" },
+  { value: "custom", label: "Custom..." },
+];
+
+const reminderOptions = [
+  { value: "0", label: "At time of event" },
+  { value: "5", label: "5 minutes before" },
+  { value: "15", label: "15 minutes before" },
+  { value: "30", label: "30 minutes before" },
+  { value: "60", label: "1 hour before" },
+  { value: "1440", label: "1 day before" },
+  { value: "10080", label: "1 week before" },
+];
+
+export const AddEventModal: React.FC<AddEventModalProps> = ({
+  open,
+  onOpenChange,
+  initialDate,
+  initialTime,
+}) => {
+  const { members, addEvent } = useFamily();
+
+  const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [selectedIcon, setSelectedIcon] = useState(iconOptions[0]);
-  const [allDay, setAllDay] = useState(false);
-  const [startDate, setStartDate] = useState("07/01/2026");
-  const [startTime, setStartTime] = useState("09:00 AM");
+  const [date, setDate] = useState("");
+  const [time, setTime] = useState("09:00");
   const [endDate, setEndDate] = useState("");
   const [endTime, setEndTime] = useState("");
-  const [reminderEnabled, setReminderEnabled] = useState(true);
-  const [selectedColor, setSelectedColor] = useState(colorOptions[0]);
+  const [selectedIcon, setSelectedIcon] = useState("📅");
+  const [allDay, setAllDay] = useState(false);
   const [location, setLocation] = useState("");
-  const [assigned, setAssigned] = useState(assignees[0].id);
+  const [memberId, setMemberId] = useState("");
+  const [color, setColor] = useState("member-blue");
 
-  const iconRows = useMemo(() => {
-    const rows: string[][] = [];
-    for (let i = 0; i < iconOptions.length; i += 5) {
-      rows.push(iconOptions.slice(i, i + 5));
+  const [repeatType, setRepeatType] = useState("never");
+  const [repeatEndDate, setRepeatEndDate] = useState("");
+  const [showRepeatOptions, setShowRepeatOptions] = useState(false);
+
+  const [reminder, setReminder] = useState(true);
+  const [reminderTime, setReminderTime] = useState("15");
+  const [showReminderOptions, setShowReminderOptions] = useState(false);
+
+  const [notes, setNotes] = useState("");
+
+  useEffect(() => {
+    if (open) {
+      // Reset form
+      setName("");
+      setDescription("");
+      setDate(initialDate || new Date().toISOString().split("T")[0]);
+      setTime(initialTime || "09:00");
+      setEndDate("");
+      setEndTime("");
+      setSelectedIcon("📅");
+      setAllDay(false);
+      setLocation("");
+      setMemberId(members[0]?.id || "1");
+      setColor("member-blue");
+      setRepeatType("never");
+      setRepeatEndDate("");
+      setReminder(true);
+      setReminderTime("15");
+      setNotes("");
+      setShowRepeatOptions(false);
+      setShowReminderOptions(false);
     }
-    return rows;
-  }, []);
+  }, [open, initialDate, initialTime, members]);
 
-  const handleAddEvent = () => {
-    closeSidebar();
-    onClose();
+  const handleSave = () => {
+    if (!name.trim()) return;
+
+    addEvent({
+      title: name.trim(),
+      date,
+      time: allDay ? "All Day" : time,
+      icon: selectedIcon,
+      memberId,
+      location,
+    });
+
+    onOpenChange(false);
   };
 
-  const handleClose = () => {
-    closeSidebar();
-    onClose();
+  const getRepeatLabel = () => {
+    return repeatOptions.find(o => o.value === repeatType)?.label || "Never repeats";
+  };
+
+  const getReminderLabel = () => {
+    if (!reminder) return "Off";
+    return reminderOptions.find(o => o.value === reminderTime)?.label || "15 minutes before";
   };
 
   return (
-    <Modal visible={open} transparent animationType="slide" onRequestClose={handleClose}>
+    <Modal visible={open} transparent animationType="slide" onRequestClose={() => onOpenChange(false)}>
       <View style={styles.overlay}>
-        <View style={styles.card}>
+        <View style={styles.container}>
+          {/* Header */}
           <View style={styles.header}>
-            <View style={styles.headerIcon}>
-              <Text style={styles.iconLarge}>{selectedIcon}</Text>
+            <View style={styles.titleContainer}>
+              <View style={styles.headerIconCircle}>
+                <AppIcon name="calendar" size={20} color={theme.colors.primary} />
+              </View>
+              <Text style={styles.headerTitle}>New Event</Text>
             </View>
-            <Text style={styles.title}>New Event</Text>
-            <Pressable onPress={handleClose} style={styles.closeButton}>
-              <Text style={styles.closeText}>×</Text>
+            <Pressable onPress={() => onOpenChange(false)} style={styles.closeButton}>
+              <AppIcon name="x" size={20} color={theme.colors.mutedForeground} />
             </Pressable>
           </View>
 
-          <ScrollView
-            contentContainerStyle={styles.body}
-            showsVerticalScrollIndicator={false}
-          >
+          <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+            {/* Event Name */}
             <TextInput
-              value={eventName}
-              onChangeText={setEventName}
+              style={styles.nameInput}
               placeholder="Event name"
-              placeholderTextColor="#7a859a"
-              style={styles.input}
+              placeholderTextColor={theme.colors.mutedForeground}
+              value={name}
+              onChangeText={setName}
             />
 
-            <Text style={styles.label}>Description</Text>
-            <TextInput
-              value={description}
-              onChangeText={setDescription}
-              placeholder="Add description..."
-              placeholderTextColor="#7a859a"
-              style={[styles.input, styles.multiline]}
-              multiline
-            />
+            {/* Description */}
+            <View style={styles.fieldGroup}>
+              <View style={styles.labelRow}>
+                <AppIcon name="file" size={14} color={theme.colors.mutedForeground} />
+                <Text style={styles.label}>Description</Text>
+              </View>
+              <TextInput
+                style={styles.textArea}
+                placeholder="Add description..."
+                placeholderTextColor={theme.colors.mutedForeground}
+                multiline
+                value={description}
+                onChangeText={setDescription}
+              />
+            </View>
 
-            <Text style={styles.label}>Icon</Text>
-            {iconRows.map((row, rowIndex) => (
-              <View key={`row-${rowIndex}`} style={styles.iconRow}>
-                {row.map((icon) => (
+            {/* Icon Selection */}
+            <View style={styles.fieldGroup}>
+              <View style={styles.labelRow}>
+                <AppIcon name="tag" size={14} color={theme.colors.mutedForeground} />
+                <Text style={styles.label}>Icon</Text>
+              </View>
+              <View style={styles.iconGrid}>
+                {eventIcons.map((icon) => (
                   <Pressable
                     key={icon}
-                    style={[
-                      styles.iconOption,
-                      selectedIcon === icon && styles.iconOptionActive,
-                    ]}
                     onPress={() => setSelectedIcon(icon)}
+                    style={[
+                      styles.iconButton,
+                      selectedIcon === icon && styles.iconButtonSelected
+                    ]}
                   >
-                    <Text
-                      style={[
-                        styles.iconText,
-                        selectedIcon === icon && styles.iconTextActive,
-                      ]}
-                    >
-                      {icon}
-                    </Text>
+                    <Text style={styles.iconText}>{icon}</Text>
                   </Pressable>
                 ))}
               </View>
-            ))}
-
-            <View style={styles.section}>
-              <View>
-                <Text style={styles.label}>All-day event</Text>
-                <Text style={styles.subLabel}>Skip time selection</Text>
-              </View>
-              <Pressable
-                style={[styles.toggle, allDay && styles.toggleActive]}
-                onPress={() => setAllDay((prev) => !prev)}
-              >
-                <View
-                  style={[
-                    styles.toggleThumb,
-                    allDay && styles.toggleThumbActive,
-                  ]}
-                />
-              </Pressable>
             </View>
 
-            <Text style={styles.sectionLabel}>Schedule</Text>
-            <View style={styles.row}>
-              <View style={styles.field}>
-                <Text style={styles.fieldLabel}>Start Date</Text>
-                <TextInput
-                  value={startDate}
-                  onChangeText={setStartDate}
-                  style={styles.input}
-                />
+            {/* All Day Toggle */}
+            <View style={styles.toggleRow}>
+              <View style={styles.toggleLabelContainer}>
+                <View style={[styles.iconBox, { backgroundColor: "rgba(249, 115, 22, 0.1)" }]}>
+                  <AppIcon name="clock" size={18} color="#f97316" />
+                </View>
+                <Text style={styles.toggleLabel}>All-day event</Text>
               </View>
-              {!allDay && (
-                <View style={styles.field}>
-                  <Text style={styles.fieldLabel}>Start Time</Text>
+              <Switch
+                value={allDay}
+                onValueChange={setAllDay}
+                trackColor={{ false: theme.colors.muted, true: theme.colors.primary }}
+              />
+            </View>
+
+            {/* Schedule */}
+            <View style={styles.fieldGroup}>
+              <Text style={styles.sectionLabel}>Schedule</Text>
+              <View style={styles.row}>
+                <View style={styles.halfField}>
+                  <Text style={styles.inputLabel}>Start Date</Text>
                   <TextInput
-                    value={startTime}
-                    onChangeText={setStartTime}
                     style={styles.input}
+                    value={date}
+                    onChangeText={setDate} // In a real app, use a date picker
+                    placeholder="YYYY-MM-DD"
                   />
+                </View>
+                {!allDay && (
+                  <View style={styles.halfField}>
+                    <Text style={styles.inputLabel}>Start Time</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={time}
+                      onChangeText={setTime} // In a real app, use a time picker
+                      placeholder="HH:MM"
+                    />
+                  </View>
+                )}
+              </View>
+
+              <View style={styles.row}>
+                <View style={styles.halfField}>
+                  <Text style={styles.inputLabel}>End Date (Optional)</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={endDate}
+                    onChangeText={setEndDate}
+                    placeholder="YYYY-MM-DD"
+                  />
+                </View>
+                {!allDay && (
+                  <View style={styles.halfField}>
+                    <Text style={styles.inputLabel}>End Time</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={endTime}
+                      onChangeText={setEndTime}
+                      placeholder="HH:MM"
+                    />
+                  </View>
+                )}
+              </View>
+            </View>
+
+            {/* Repeat Options */}
+            <View style={styles.fieldGroup}>
+              <Pressable
+                style={styles.expandableHeader}
+                onPress={() => setShowRepeatOptions(!showRepeatOptions)}
+              >
+                <View style={styles.toggleLabelContainer}>
+                  <View style={[styles.iconBox, { backgroundColor: "rgba(59, 130, 246, 0.1)" }]}>
+                    <AppIcon name="repeat" size={18} color="#3b82f6" />
+                  </View>
+                  <View>
+                    <Text style={styles.toggleLabel}>Repeat</Text>
+                    <Text style={styles.valueLabel}>{getRepeatLabel()}</Text>
+                  </View>
+                </View>
+                <AppIcon
+                  name="chevronDown"
+                  size={20}
+                  color={theme.colors.mutedForeground}
+                  style={{ transform: [{ rotate: showRepeatOptions ? '180deg' : '0deg' }] }}
+                />
+              </Pressable>
+
+              {showRepeatOptions && (
+                <View style={styles.expandableContent}>
+                  <View style={styles.chipsContainer}>
+                    {repeatOptions.map((option) => (
+                      <Pressable
+                        key={option.value}
+                        onPress={() => setRepeatType(option.value)}
+                        style={[
+                          styles.chip,
+                          repeatType === option.value && styles.chipActive
+                        ]}
+                      >
+                        <Text style={[
+                          styles.chipText,
+                          repeatType === option.value && styles.chipTextActive
+                        ]}>
+                          {option.label}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                  {repeatType !== 'never' && (
+                    <View style={{ marginTop: 12 }}>
+                      <Text style={styles.inputLabel}>End repeat (Optional)</Text>
+                      <TextInput
+                        style={styles.input}
+                        value={repeatEndDate}
+                        onChangeText={setRepeatEndDate}
+                        placeholder="Never"
+                      />
+                    </View>
+                  )}
                 </View>
               )}
             </View>
-            <View style={styles.row}>
-              <View style={styles.field}>
-                <Text style={styles.fieldLabel}>End Date (Optional)</Text>
-                <TextInput
-                  value={endDate}
-                  onChangeText={setEndDate}
-                  style={styles.input}
-                />
-              </View>
-              {!allDay && (
-                <View style={styles.field}>
-                  <Text style={styles.fieldLabel}>End Time</Text>
-                  <TextInput
-                    value={endTime}
-                    onChangeText={setEndTime}
-                    style={styles.input}
+
+            {/* Reminder Options */}
+            <View style={styles.fieldGroup}>
+              <Pressable
+                style={styles.expandableHeader}
+                onPress={() => setShowReminderOptions(!showReminderOptions)}
+              >
+                <View style={styles.toggleLabelContainer}>
+                  <View style={[styles.iconBox, { backgroundColor: reminder ? "rgba(34, 197, 94, 0.1)" : theme.colors.muted }]}>
+                    <AppIcon name="bell" size={18} color={reminder ? "#22c55e" : theme.colors.mutedForeground} />
+                  </View>
+                  <View>
+                    <Text style={styles.toggleLabel}>Reminder</Text>
+                    <Text style={styles.valueLabel}>{getReminderLabel()}</Text>
+                  </View>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Switch
+                    value={reminder}
+                    onValueChange={setReminder}
+                    trackColor={{ false: theme.colors.muted, true: theme.colors.primary }}
                   />
+                  <AppIcon
+                    name="chevronDown"
+                    size={20}
+                    color={theme.colors.mutedForeground}
+                    style={{ transform: [{ rotate: showReminderOptions ? '180deg' : '0deg' }] }}
+                  />
+                </View>
+              </Pressable>
+
+              {showReminderOptions && reminder && (
+                <View style={styles.expandableContent}>
+                  <View style={styles.chipsContainer}>
+                    {reminderOptions.map((option) => (
+                      <Pressable
+                        key={option.value}
+                        onPress={() => setReminderTime(option.value)}
+                        style={[
+                          styles.chip,
+                          reminderTime === option.value && styles.chipActive
+                        ]}
+                      >
+                        <Text style={[
+                          styles.chipText,
+                          reminderTime === option.value && styles.chipTextActive
+                        ]}>
+                          {option.label}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
                 </View>
               )}
             </View>
 
-            <View style={styles.section}>
-              <View>
-                <Text style={styles.label}>Repeat</Text>
-                <Text style={styles.subLabel}>Never repeats</Text>
-              </View>
-              <Text style={styles.chevron}>›</Text>
-            </View>
-
-            <View style={styles.section}>
-              <View>
-                <Text style={styles.label}>Reminder</Text>
-                <Text style={styles.subLabel}>15 minutes before</Text>
-              </View>
-              <Pressable
-                style={[styles.toggle, reminderEnabled && styles.toggleActive]}
-                onPress={() => setReminderEnabled((prev) => !prev)}
-              >
-                <View
-                  style={[
-                    styles.toggleThumb,
-                    reminderEnabled && styles.toggleThumbActive,
-                  ]}
-                />
-              </Pressable>
-            </View>
-
-            <Text style={styles.label}>Color</Text>
-            <View style={styles.iconRow}>
-              {colorOptions.map((color) => (
-                <Pressable
-                  key={color}
-                  style={[
-                    styles.colorOption,
-                    { backgroundColor: color },
-                    selectedColor === color && styles.colorOptionActive,
-                  ]}
-                  onPress={() => setSelectedColor(color)}
-                />
-              ))}
-            </View>
-
-            <Text style={styles.label}>Location</Text>
-            <TextInput
-              value={location}
-              onChangeText={setLocation}
-              placeholder="Add location..."
-              placeholderTextColor="#7a859a"
-              style={styles.input}
-            />
-
-            <Text style={styles.label}>Assign to</Text>
-            <View style={styles.iconRow}>
-              {assignees.map((person) => (
-                <Pressable
-                  key={person.id}
-                  style={[
-                    styles.assignee,
-                    assigned === person.id && styles.assigneeActive,
-                  ]}
-                  onPress={() => setAssigned(person.id)}
-                >
-                  <Text style={styles.assigneeIcon}>{person.icon}</Text>
-                  <Text
+            {/* Color Selection */}
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Color</Text>
+              <View style={styles.colorRow}>
+                {eventColors.map((c) => (
+                  <Pressable
+                    key={c.value}
+                    onPress={() => setColor(c.value)}
                     style={[
-                      styles.assigneeLabel,
-                      assigned === person.id && styles.assigneeLabelActive,
+                      styles.colorDot,
+                      { backgroundColor: c.dot },
+                      color === c.value && styles.colorDotSelected
+                    ]}
+                  />
+                ))}
+              </View>
+            </View>
+
+            {/* Location */}
+            <View style={styles.fieldGroup}>
+              <View style={styles.labelRow}>
+                <AppIcon name="pin" size={14} color={theme.colors.mutedForeground} />
+                <Text style={styles.label}>Location</Text>
+              </View>
+              <TextInput
+                style={styles.input}
+                value={location}
+                onChangeText={setLocation}
+                placeholder="Add location..."
+              />
+            </View>
+
+            {/* Assign To */}
+            <View style={styles.fieldGroup}>
+              <View style={styles.labelRow}>
+                <AppIcon name="user" size={14} color={theme.colors.mutedForeground} />
+                <Text style={styles.label}>Assign to</Text>
+              </View>
+              <View style={styles.chipsContainer}>
+                {members.map((member) => (
+                  <Pressable
+                    key={member.id}
+                    onPress={() => setMemberId(member.id)}
+                    style={[
+                      styles.memberChip,
+                      memberId === member.id && styles.memberChipActive
                     ]}
                   >
-                    {person.label}
-                  </Text>
-                </Pressable>
-              ))}
+                    <Text style={styles.memberEmoji}>{member.symbol}</Text>
+                    <Text style={[
+                      styles.memberChipText,
+                      memberId === member.id && styles.memberChipTextActive
+                    ]}>{member.name}</Text>
+                  </Pressable>
+                ))}
+              </View>
             </View>
+
+            {/* Notes */}
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Notes</Text>
+              <TextInput
+                style={styles.textArea}
+                placeholder="Add any additional notes..."
+                placeholderTextColor={theme.colors.mutedForeground}
+                multiline
+                value={notes}
+                onChangeText={setNotes}
+              />
+            </View>
+
+            <View style={{ height: 40 }} />
           </ScrollView>
 
+          {/* Footer */}
           <View style={styles.footer}>
-            <Pressable style={styles.cancelButton} onPress={handleClose}>
-              <Text style={styles.cancelText}>Cancel</Text>
+            <Pressable
+              style={styles.cancelButton}
+              onPress={() => onOpenChange(false)}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
             </Pressable>
-            <Pressable style={styles.addButton} onPress={handleAddEvent}>
-              <Text style={styles.addText}>Add Event</Text>
+            <Pressable
+              style={styles.saveButton}
+              onPress={handleSave}
+            >
+              <Text style={styles.saveButtonText}>Add Event</Text>
             </Pressable>
           </View>
         </View>
@@ -290,224 +475,269 @@ export const AddEventModal: React.FC<AddEventModalProps> = ({ open, onClose }) =
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(15, 23, 42, 0.6)",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: theme.spacing.lg,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
   },
-  card: {
+  container: {
+    backgroundColor: theme.colors.background,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    height: "92%",
     width: "100%",
-    maxWidth: 520,
-    borderRadius: 28,
-    backgroundColor: "#fff",
-    paddingBottom: theme.spacing.sm,
-    overflow: "hidden",
-    maxHeight: "95%",
+    ...Platform.select({
+      ios: { shadowColor: "#000", shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.1, shadowRadius: 10 },
+      android: { elevation: 10 },
+    }),
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
-    padding: theme.spacing.md,
+    justifyContent: "space-between",
+    padding: 20,
     borderBottomWidth: 1,
-    borderColor: "#e5e9f0",
+    borderBottomColor: theme.colors.border,
   },
-  headerIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 16,
-    backgroundColor: "#f0f4ff",
+  titleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  headerIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: "rgba(59, 130, 246, 0.1)",
     alignItems: "center",
     justifyContent: "center",
-    marginRight: theme.spacing.md,
   },
-  iconLarge: {
-    fontSize: 24,
-  },
-  title: {
-    fontSize: 22,
+  headerTitle: {
+    fontSize: 20,
     fontWeight: "700",
     color: theme.colors.foreground,
-    flex: 1,
   },
   closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#f2f5fb",
-    alignItems: "center",
-    justifyContent: "center",
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: theme.colors.muted,
   },
-  closeText: {
-    fontSize: 20,
-    color: "#6f7c94",
+  content: {
+    flex: 1,
+    padding: 20,
   },
-  body: {
-    padding: theme.spacing.md,
-    paddingBottom: 0,
-  },
-  input: {
-    backgroundColor: "#f5f7fb",
-    borderRadius: 16,
-    paddingVertical: theme.spacing.sm,
-    paddingHorizontal: theme.spacing.md,
-    marginBottom: theme.spacing.sm,
-    fontSize: 16,
+  nameInput: {
+    fontSize: 24,
+    fontWeight: "600",
     color: theme.colors.foreground,
+    marginBottom: 24,
+    paddingVertical: 8,
   },
-  multiline: {
-    minHeight: 90,
-    textAlignVertical: "top",
+  fieldGroup: {
+    marginBottom: 24,
+  },
+  labelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 8,
   },
   label: {
     fontSize: 14,
     fontWeight: "600",
-    color: theme.colors.foreground,
-    marginBottom: theme.spacing.xs,
-  },
-  subLabel: {
-    fontSize: 12,
     color: theme.colors.mutedForeground,
   },
-  iconRow: {
+  textArea: {
+    backgroundColor: "rgba(0,0,0,0.03)",
+    borderRadius: 12,
+    padding: 12,
+    minHeight: 80,
+    textAlignVertical: "top",
+    fontSize: 16,
+    color: theme.colors.foreground,
+  },
+  iconGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: theme.spacing.sm,
-    marginBottom: theme.spacing.sm,
+    gap: 10,
   },
-  iconOption: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
-    backgroundColor: "#eef2fb",
+  iconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: "rgba(0,0,0,0.03)",
     alignItems: "center",
     justifyContent: "center",
   },
-  iconOptionActive: {
-    backgroundColor: "#1f4c85",
+  iconButtonSelected: {
+    backgroundColor: theme.colors.primary,
+    transform: [{ scale: 1.1 }],
   },
   iconText: {
-    fontSize: 24,
+    fontSize: 20,
   },
-  iconTextActive: {
-    color: "#fff",
-  },
-  section: {
+  toggleRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "#f5f7fb",
+    justifyContent: "space-between",
+    padding: 16,
+    backgroundColor: "rgba(0,0,0,0.03)",
     borderRadius: 16,
-    padding: theme.spacing.sm,
-    marginBottom: theme.spacing.sm,
+    marginBottom: 24,
+  },
+  toggleLabelContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  iconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  toggleLabel: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: theme.colors.foreground,
   },
   sectionLabel: {
-    fontWeight: "700",
-    color: theme.colors.foreground,
-    marginBottom: theme.spacing.sm,
-  },
-  toggle: {
-    width: 48,
-    height: 24,
-    borderRadius: 999,
-    backgroundColor: "#dfe4f5",
-    padding: 4,
-  },
-  toggleActive: {
-    backgroundColor: theme.colors.primary,
-  },
-  toggleThumb: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: "#fff",
-  },
-  toggleThumbActive: {
-    alignSelf: "flex-end",
+    fontSize: 14,
+    fontWeight: "600",
+    color: theme.colors.mutedForeground,
+    marginBottom: 12,
   },
   row: {
     flexDirection: "row",
-    gap: theme.spacing.sm,
+    gap: 12,
+    marginBottom: 12,
   },
-  field: {
+  halfField: {
     flex: 1,
   },
-  fieldLabel: {
+  inputLabel: {
     fontSize: 12,
     color: theme.colors.mutedForeground,
-    marginBottom: theme.spacing.xs,
+    marginBottom: 4,
   },
-  chevron: {
-    fontSize: 20,
-    color: theme.colors.mutedForeground,
-  },
-  colorOption: {
-    width: 42,
-    height: 42,
-    borderRadius: 999,
-    marginBottom: theme.spacing.sm,
-  },
-  colorOptionActive: {
-    borderWidth: 3,
-    borderColor: "#fff",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  assignee: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: "#e5e9f0",
-    paddingVertical: theme.spacing.xs,
-    paddingHorizontal: theme.spacing.sm,
-    backgroundColor: "#f5f7fb",
-    marginRight: theme.spacing.sm,
-  },
-  assigneeActive: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
-  },
-  assigneeIcon: {
-    marginRight: theme.spacing.xs,
-  },
-  assigneeLabel: {
+  input: {
+    backgroundColor: "rgba(0,0,0,0.03)",
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 16,
     color: theme.colors.foreground,
-    fontWeight: "600",
   },
-  assigneeLabelActive: {
-    color: "#fff",
-  },
-  footer: {
+  expandableHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: theme.spacing.md,
-    paddingTop: theme.spacing.sm,
+    padding: 16,
+    backgroundColor: "rgba(0,0,0,0.03)",
+    borderRadius: 16,
+  },
+  valueLabel: {
+    fontSize: 13,
+    color: theme.colors.mutedForeground,
+  },
+  expandableContent: {
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: "rgba(0,0,0,0.03)",
+    borderRadius: 16,
+  },
+  chipsContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  chip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: theme.colors.card,
+  },
+  chipActive: {
+    backgroundColor: theme.colors.primary,
+  },
+  chipText: {
+    fontSize: 14,
+    color: theme.colors.foreground,
+  },
+  chipTextActive: {
+    color: theme.colors.primaryForeground,
+    fontWeight: "600",
+  },
+  colorRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 8,
+  },
+  colorDot: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+  },
+  colorDotSelected: {
+    borderWidth: 3,
+    borderColor: theme.colors.background,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    transform: [{ scale: 1.1 }],
+  },
+  memberChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: "rgba(0,0,0,0.03)",
+    gap: 6,
+  },
+  memberChipActive: {
+    backgroundColor: theme.colors.primary,
+  },
+  memberEmoji: {
+    fontSize: 16,
+  },
+  memberChipText: {
+    fontSize: 14,
+    color: theme.colors.mutedForeground,
+    fontWeight: "500",
+  },
+  memberChipTextActive: {
+    color: theme.colors.primaryForeground,
+  },
+  footer: {
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border,
+    flexDirection: "row",
+    gap: 16,
+    backgroundColor: theme.colors.background,
   },
   cancelButton: {
     flex: 1,
-    backgroundColor: "#edf2fb",
+    padding: 16,
     borderRadius: 16,
-    paddingVertical: theme.spacing.sm,
+    backgroundColor: theme.colors.muted,
     alignItems: "center",
-    marginRight: theme.spacing.sm,
   },
-  cancelText: {
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
     color: theme.colors.foreground,
-    fontWeight: "600",
   },
-  addButton: {
+  saveButton: {
     flex: 1,
-    backgroundColor: theme.colors.primary,
+    padding: 16,
     borderRadius: 16,
-    paddingVertical: theme.spacing.sm,
+    backgroundColor: theme.colors.primary,
     alignItems: "center",
   },
-  addText: {
-    color: "#fff",
+  saveButtonText: {
+    fontSize: 16,
     fontWeight: "600",
+    color: theme.colors.primaryForeground,
   },
 });

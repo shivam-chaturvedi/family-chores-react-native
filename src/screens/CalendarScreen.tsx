@@ -1,608 +1,712 @@
-import React, { useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import React, { useState, useRef, useMemo } from "react";
+import {
+  StyleSheet,
+  Text,
+  View,
+  ScrollView,
+  Pressable,
+  Dimensions,
+  Platform,
+} from "react-native";
 import { AppLayout } from "../components/layout/AppLayout";
+import { AddEventModal } from "../components/modals/AddEventModal";
 import { GlobalSearch } from "../components/search/GlobalSearch";
 import { useFamily } from "../contexts/FamilyContext";
 import { theme } from "../theme";
+import { AppIcon } from "../components/ui/AppIcon";
 import { useSidebar } from "../contexts/SidebarContext";
+import { format, addMonths, subMonths, addDays, startOfWeek, endOfWeek, isSameMonth, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval } from "date-fns";
+import { useNavigation } from "@react-navigation/native";
+
+const filteredEvents = (events: any[], filterMember: string | null) => {
+  if (!filterMember) return events;
+  return events.filter((e) => e.memberId === filterMember);
+};
 
 const views = ["Day", "Week", "Month"];
-const timelineHours = Array.from({ length: 16 }, (_, index) => 8 + index);
-
-const memberColorMap: Record<string, string> = {
-  "member-blue": "#2255ba",
-  "member-green": "#24a05e",
-  "member-orange": "#f68b1f",
-};
-
-const formatDateKey = (date: Date) => date.toISOString().split("T")[0];
-const formatHourLabel = (hour: number) => {
-  const suffix = hour >= 12 ? "PM" : "AM";
-  const normalized = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
-  return `${normalized} ${suffix}`;
-};
+const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export const CalendarScreen: React.FC = () => {
   const { members, events } = useFamily();
-  const [view, setView] = useState("Day");
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [selectedMemberId, setSelectedMemberId] = useState("all");
-  const [showSearch, setShowSearch] = useState(false);
   const { openSidebar } = useSidebar();
+  const navigation = useNavigation();
 
-  const filterOptions = useMemo(() => {
-    return [
-      { id: "all", label: "All", icon: "👥" },
-      ...members.map((member) => ({
-        id: member.id,
-        label: member.name,
-        icon: member.symbol,
-        color: memberColorMap[member.color] || theme.colors.primary,
-      })),
-    ];
-  }, [members]);
-
-  const baseWeek = useMemo(() => {
-    const startDate = new Date(selectedDate);
-    startDate.setDate(selectedDate.getDate() - selectedDate.getDay());
-    return Array.from({ length: 7 }).map((_, index) => {
-      const day = new Date(startDate);
-      day.setDate(startDate.getDate() + index);
-      return day;
-    });
-  }, [selectedDate]);
+  const [activeView, setActiveView] = useState("Month");
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [showAddEventModal, setShowAddEventModal] = useState(false);
+  const [filterMember, setFilterMember] = useState<string | null>(null);
+  const [showSearch, setShowSearch] = useState(false);
 
   const today = new Date();
-  const todayKey = formatDateKey(today);
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const tomorrowKey = formatDateKey(tomorrow);
 
-  const upcoming = useMemo(() => {
-    const base =
-      selectedMemberId === "all"
-        ? events
-        : events.filter((item) => item.memberId === selectedMemberId);
-    return {
-      today: base.filter((event) => event.date === todayKey),
-      tomorrow: base.filter((event) => event.date === tomorrowKey),
-    };
-  }, [events, selectedMemberId, todayKey, tomorrowKey]);
+  const currentEvents = useMemo(() =>
+    filteredEvents(events, filterMember),
+    [events, filterMember]
+  );
 
-  const handleNavigate = (direction: number) => {
-    const next = new Date(selectedDate);
-    if (view === "Month") {
-      next.setMonth(next.getMonth() + direction);
-    } else if (view === "Week") {
-      next.setDate(next.getDate() + direction * 7);
+  const navigateDate = (direction: number) => {
+    if (activeView === "Month") {
+      setSelectedDate(prev => direction > 0 ? addMonths(prev, 1) : subMonths(prev, 1));
     } else {
-      next.setDate(next.getDate() + direction);
+      setSelectedDate(prev => addDays(prev, direction * (activeView === "Week" ? 7 : 1)));
     }
-    setSelectedDate(next);
   };
 
-  const goToToday = () => setSelectedDate(new Date());
+  const generateMonthDays = () => {
+    const start = startOfWeek(startOfMonth(selectedDate));
+    const end = endOfWeek(endOfMonth(selectedDate));
+    return eachDayOfInterval({ start, end });
+  };
 
-  const dayLabel = selectedDate.toLocaleDateString("en-US", { weekday: "short" });
-  const monthYearLabel = selectedDate.toLocaleDateString("en-US", {
-    month: "long",
-    year: "numeric",
-  });
+  const generateWeekDays = () => {
+    const start = startOfWeek(selectedDate);
+    return Array.from({ length: 7 }).map((_, i) => addDays(start, i));
+  };
 
-  return (
-    <>
-      <AppLayout showAddButton={false} showNav={false}>
-        <ScrollView contentContainerStyle={styles.container}>
-          <View style={styles.headerShell}>
-            <View style={styles.headerBackground}>
-              <View style={styles.headerRow}>
-                <Pressable style={styles.iconCircle} onPress={openSidebar}>
-                  <Text style={styles.iconText}>☰</Text>
-                </Pressable>
-                <View style={styles.titleBlock}>
-                  <Text style={styles.headerTitle}>January</Text>
-                  <Text style={styles.headerSubtitle}>2026</Text>
-                </View>
-                <View style={styles.headerActions}>
-                  <Pressable style={styles.actionBubble} onPress={() => setShowSearch(true)}>
-                    <Text style={styles.iconText}>🔍</Text>
-                  </Pressable>
-                  <Pressable style={styles.actionBubble}>
-                    <Text style={styles.iconText}>🔔</Text>
-                  </Pressable>
-                  <Pressable style={styles.addEventButton}>
-                    <Text style={styles.addEventText}>＋ Add Event</Text>
-                  </Pressable>
-                </View>
-              </View>
-              <View style={styles.viewToggle}>
-                {views.map((option) => {
-                  const isActive = view === option;
+  const monthDays = useMemo(() => generateMonthDays(), [selectedDate]);
+  const weekDays = useMemo(() => generateWeekDays(), [selectedDate]);
+
+  const renderMonthView = () => (
+    <View style={styles.card}>
+      {/* Day Headers */}
+      <View style={styles.gridHeader}>
+        {daysOfWeek.map((day, i) => (
+          <Text key={i} style={[styles.gridHeaderLabel, i === 0 && styles.textDanger]}>
+            {day}
+          </Text>
+        ))}
+      </View>
+
+      {/* Grid */}
+      <View style={styles.grid}>
+        {monthDays.map((day, i) => {
+          const isCurrentMonth = isSameMonth(day, selectedDate);
+          const isSelected = isSameDay(day, selectedDate);
+          const isToday = isSameDay(day, today);
+          const dayEvents = currentEvents.filter(e => isSameDay(new Date(e.date), day));
+
+          return (
+            <Pressable
+              key={i}
+              onPress={() => setSelectedDate(day)}
+              style={[
+                styles.dayCell,
+                !isCurrentMonth && styles.dayCellFaded,
+                isSelected && styles.dayCellActive,
+                isToday && !isSelected && styles.dayCellToday
+              ]}
+            >
+              <Text style={[
+                styles.dayText,
+                !isCurrentMonth && styles.dayTextFaded,
+                isSelected && styles.dayTextActive,
+                isToday && !isSelected && styles.dayTextToday
+              ]}>
+                {format(day, "d")}
+              </Text>
+
+              <View style={styles.eventDotRx}>
+                {dayEvents.slice(0, 3).map((e, idx) => {
+                  const member = members.find(m => m.id === e.memberId);
+                  const dotColor = member?.color === "member-blue" ? "#3b82f6" :
+                    member?.color === "member-green" ? "#22c55e" :
+                      member?.color === "member-orange" ? "#f97316" :
+                        member?.color === "member-pink" ? "#ec4899" :
+                          member?.color === "member-purple" ? "#8b5cf6" : "#ef4444";
                   return (
-                    <Pressable
-                      key={option}
-                      style={[styles.viewItem, isActive && styles.viewItemActive]}
-                      onPress={() => setView(option)}
-                    >
-                      <Text style={[styles.viewText, isActive && styles.viewTextActive]}>{option}</Text>
-                    </Pressable>
+                    <View
+                      key={idx}
+                      style={[
+                        styles.eventDot,
+                        { backgroundColor: isSelected ? "#fff" : dotColor }
+                      ]}
+                    />
                   );
                 })}
               </View>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+
+  const renderTimeline = (days: Date[]) => (
+    <View style={{ flex: 1 }}>
+      {/* Week Header if Week View */}
+      {activeView === "Week" && (
+        <View style={styles.weekHeaderRow}>
+          {days.map((day, i) => {
+            const isSelected = isSameDay(day, selectedDate);
+            const isToday = isSameDay(day, today);
+            return (
+              <Pressable
+                key={i}
+                onPress={() => setSelectedDate(day)}
+                style={[
+                  styles.weekHeaderCell,
+                  isSelected && styles.weekHeaderCellActive,
+                  isToday && !isSelected && styles.weekHeaderCellToday
+                ]}
+              >
+                <Text style={[styles.weekDayLabel, isSelected && styles.textWhite]}>{format(day, "EEE")}</Text>
+                <Text style={[styles.weekDateLabel, isSelected && styles.textWhite]}>{format(day, "d")}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      )}
+
+      {/* Timeline */}
+      <View style={styles.card}>
+        {activeView === "Day" && (
+          <View style={styles.dayHeader}>
+            <Text style={styles.dayHeaderNumber}>{format(selectedDate, "d")}</Text>
+            <View>
+              <Text style={styles.dayHeaderMonth}>{format(selectedDate, "MMMM yyyy")}</Text>
+              <Text style={styles.dayHeaderWeekday}>{format(selectedDate, "EEEE")}</Text>
+            </View>
+          </View>
+        )}
+
+        <ScrollView style={{ maxHeight: 400 }}>
+          {Array.from({ length: 24 }).map((_, hour) => {
+            const hourEvents = activeView === "Day"
+              ? currentEvents.filter(e => {
+                const d = new Date(e.date);
+                // Simple check: assumes event.time is HH:MM or similar. ideally use Date objects.
+                // For now, filtering by date string match + strict hour parsing if possible, or just date match for simplicity in this MVP step if filteredFilters is weak
+                return isSameDay(d, selectedDate) && (parseInt(e.time) === hour || (!parseInt(e.time) && hour === 9)); // fallback
+              })
+              : [];
+            // Improving time filter:
+            const eventsInHour = currentEvents.filter(e => {
+              if (!isSameDay(new Date(e.date), selectedDate)) return false;
+              if (e.time === "All Day") return hour === 0;
+              const h = parseInt(e.time.split(":")[0]);
+              return h === hour;
+            });
+
+            return (
+              <View key={hour} style={styles.timelineRow}>
+                <Text style={styles.timeLabel}>
+                  {hour === 0 ? "12 AM" : hour < 12 ? `${hour} AM` : hour === 12 ? "12 PM" : `${hour - 12} PM`}
+                </Text>
+                <View style={styles.timelineContent}>
+                  {activeView === "Day" && eventsInHour.map((event, idx) => {
+                    const member = members.find(m => m.id === event.memberId);
+                    const bgColor = member?.color === "member-blue" ? "#dbeafe" :
+                      member?.color === "member-green" ? "#dcfce7" : "#ffedd5";
+                    return (
+                      <View key={event.id} style={[styles.eventBlock, { backgroundColor: bgColor }]}>
+                        <Text style={styles.eventBlockTitle}>{event.title}</Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              </View>
+            );
+          })}
+        </ScrollView>
+      </View>
+    </View>
+  );
+
+  return (
+    <AppLayout showNav={false} showAddButton={false}>
+      <View style={styles.container}>
+        {/* Header Section */}
+        <View style={styles.header}>
+          <View style={styles.headerTop}>
+            <View style={styles.headerLeft}>
+              <Pressable onPress={openSidebar} style={styles.iconButton}>
+                <AppIcon name="menu" size={20} color="#fff" />
+              </Pressable>
+              <View style={styles.monthSelector}>
+                <Text style={styles.monthTitle}>{format(selectedDate, "MMMM yyyy")}</Text>
+                <AppIcon name="chevronRight" size={16} color="#fff" />
+              </View>
+            </View>
+
+            <View style={styles.headerRight}>
+              <Pressable onPress={() => setShowSearch(true)} style={styles.iconButton}>
+                <AppIcon name="search" size={20} color="#fff" />
+              </Pressable>
+              <Pressable style={styles.iconButton}>
+                <AppIcon name="bell" size={20} color="#fff" />
+              </Pressable>
+              <Pressable
+                style={styles.addBtn}
+                onPress={() => setShowAddEventModal(true)}
+              >
+                <AppIcon name="plus" size={16} color={theme.colors.primary} />
+                <Text style={styles.addBtnText}>Add Event</Text>
+              </Pressable>
             </View>
           </View>
 
-          <View style={styles.filterRow}>
-            {filterOptions.map((option) => {
-              const isActive = selectedMemberId === option.id;
-              return (
-                <Pressable
-                  key={option.id}
-                  onPress={() => setSelectedMemberId(option.id)}
-                  style={[styles.filterPill, isActive && styles.filterPillActive]}
-                >
-                  <Text style={[styles.filterIcon, isActive && styles.filterIconActive]}>{option.icon}</Text>
-                  <Text
-                    style={[
-                      styles.filterText,
-                      isActive && { color: option.color || theme.colors.primaryForeground },
-                    ]}
-                  >
-                    {option.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
+          {/* View Segmented Control */}
+          <View style={styles.segmentContainer}>
+            {views.map(view => (
+              <Pressable
+                key={view}
+                onPress={() => setActiveView(view)}
+                style={[
+                  styles.segmentBtn,
+                  activeView === view && styles.segmentBtnActive
+                ]}
+              >
+                <Text style={[
+                  styles.segmentText,
+                  activeView === view && styles.segmentTextActive
+                ]}>{view}</Text>
+              </Pressable>
+            ))}
           </View>
+        </View>
 
-          <View style={styles.navRow}>
-            <Pressable style={styles.navCircle} onPress={() => handleNavigate(-1)}>
-              <Text style={styles.navArrow}>‹</Text>
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          {/* Member Filters */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
+            <Pressable
+              onPress={() => setFilterMember(null)}
+              style={[
+                styles.filterChip,
+                filterMember === null && styles.filterChipActive
+              ]}
+            >
+              <AppIcon name="users" size={14} color={filterMember === null ? "#fff" : theme.colors.foreground} />
+              <Text style={[
+                styles.filterText,
+                filterMember === null && styles.filterTextActive
+              ]}>All</Text>
             </Pressable>
-            <Pressable style={styles.todayBadge} onPress={goToToday}>
+            {members.map(member => (
+              <Pressable
+                key={member.id}
+                onPress={() => setFilterMember(member.id)}
+                style={[
+                  styles.filterChip,
+                  filterMember === member.id && styles.filterChipActive
+                ]}
+              >
+                <Text style={styles.filterEmoji}>{member.symbol}</Text>
+                <Text style={[
+                  styles.filterText,
+                  filterMember === member.id && styles.filterTextActive
+                ]}>{member.name}</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+
+          {/* Date Navigation */}
+          <View style={styles.dateNav}>
+            <Pressable onPress={() => navigateDate(-1)} style={styles.navArrow}>
+              <AppIcon name="chevronLeft" size={20} color={theme.colors.foreground} />
+            </Pressable>
+            <Pressable onPress={() => setSelectedDate(new Date())} style={styles.todayBtn}>
               <Text style={styles.todayText}>Today</Text>
             </Pressable>
-            <Pressable style={styles.navCircle} onPress={() => handleNavigate(1)}>
-              <Text style={styles.navArrow}>›</Text>
+            <Pressable onPress={() => navigateDate(1)} style={styles.navArrow}>
+              <AppIcon name="chevronRight" size={20} color={theme.colors.foreground} />
             </Pressable>
           </View>
 
-          <View style={styles.weekRow}>
-            {baseWeek.map((day) => {
-              const isActive =
-                day.getDate() === selectedDate.getDate() && day.getMonth() === selectedDate.getMonth();
-              return (
-                <Pressable
-                  key={day.toISOString()}
-                  onPress={() => setSelectedDate(new Date(day))}
-                  style={[styles.weekPill, isActive && styles.weekPillActive]}
-                >
-                  <Text style={[styles.weekDay, isActive && styles.weekDayActive]}>
-                    {day.toLocaleDateString("en-US", { weekday: "short" })}
-                  </Text>
-                  <Text style={[styles.weekDate, isActive && styles.weekDateActive]}>{day.getDate()}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
+          {activeView === "Month" && renderMonthView()}
+          {(activeView === "Week" || activeView === "Day") && renderTimeline(activeView === "Week" ? weekDays : [selectedDate])}
 
-          <View style={styles.timelineCard}>
-            <View style={styles.timelineHeader}>
-              <View>
-                <Text style={styles.timelineDay}>{selectedDate.getDate()}</Text>
-                <Text style={styles.timelineLabel}>{monthYearLabel}</Text>
+          {/* Upcoming Events (Simplified Logic) */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>📋 Upcoming Events</Text>
+            {currentEvents.slice(0, 3).map(event => (
+              <View key={event.id} style={styles.upcomingItem}>
+                <View style={styles.upcomingLeft}>
+                  <Text style={{ fontSize: 24 }}>{event.icon}</Text>
+                  <View>
+                    <Text style={styles.upcomingTitle}>{event.title}</Text>
+                    <Text style={styles.upcomingMeta}>{format(new Date(event.date), "MMM d")} · {event.time}</Text>
+                  </View>
+                </View>
               </View>
-              <Text style={styles.timelineWeekday}>{dayLabel}</Text>
-            </View>
-            <View style={styles.timelineBody}>
-              {timelineHours.map((hour) => (
-                <View key={hour} style={styles.timelineRow}>
-                  <Text style={styles.hourLabel}>{formatHourLabel(hour)}</Text>
-                  <View style={styles.hourLine} />
-                </View>
-              ))}
-            </View>
+            ))}
           </View>
 
-          <View style={styles.upcomingCard}>
-            <Text style={styles.sectionTitle}>Upcoming Events</Text>
-            <View style={styles.upcomingSection}>
-              <Text style={styles.upcomingLabel}>Today</Text>
-              {upcoming.today.length === 0 ? (
-                <View style={styles.placeholderRow}>
-                  <Text style={styles.placeholderText}>No events today</Text>
-                </View>
-              ) : (
-                upcoming.today.map((event) => (
-                  <View key={event.id} style={styles.upcomingRow}>
-                    <Text style={styles.eventIcon}>{event.icon}</Text>
-                    <View>
-                      <Text style={styles.eventTitle}>{event.title}</Text>
-                      <Text style={styles.eventMeta}>{event.time} · {event.location || "Home"}</Text>
-                    </View>
-                  </View>
-                ))
-              )}
-            </View>
-            <View style={styles.upcomingSection}>
-              <Text style={styles.upcomingLabel}>Tomorrow</Text>
-              {upcoming.tomorrow.length === 0 ? (
-                <View style={styles.placeholderRow}>
-                  <Text style={styles.placeholderText}>No events tomorrow</Text>
-                </View>
-              ) : (
-                upcoming.tomorrow.map((event) => (
-                  <View key={event.id} style={styles.upcomingRow}>
-                    <Text style={styles.eventIcon}>{event.icon}</Text>
-                    <View>
-                      <Text style={styles.eventTitle}>{event.title}</Text>
-                      <Text style={styles.eventMeta}>{event.time} · {event.location || "Home"}</Text>
-                    </View>
-                  </View>
-                ))
-              )}
-            </View>
-          </View>
-
-          <View style={styles.familyCard}>
-            <Text style={styles.sectionTitle}>Family Members</Text>
-            <View style={styles.familyRow}>
-              {members.map((member) => (
-                <View key={member.id} style={styles.familyItem}>
-                  <View
-                    style={[
-                      styles.familyDot,
-                      { backgroundColor: memberColorMap[member.color] || theme.colors.primary },
-                    ]}
-                  />
-                  <Text style={styles.familyText}>{member.name}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
+          <View style={{ height: 100 }} />
         </ScrollView>
-      </AppLayout>
-      <GlobalSearch open={showSearch} onClose={() => setShowSearch(false)} />
-    </>
+
+        {/* FAB */}
+        <Pressable
+          style={styles.fab}
+          onPress={() => setShowAddEventModal(true)}
+        >
+          <AppIcon name="plus" size={24} color="#fff" />
+        </Pressable>
+
+        <AddEventModal
+          open={showAddEventModal}
+          onOpenChange={setShowAddEventModal}
+          initialDate={format(selectedDate, "yyyy-MM-dd")}
+        />
+        <GlobalSearch open={showSearch} onClose={() => setShowSearch(false)} />
+      </View>
+    </AppLayout>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.background,
-    paddingBottom: 120,
-  },
-  headerShell: {
-    backgroundColor: "#173b78",
-    borderBottomLeftRadius: 40,
-    borderBottomRightRadius: 40,
-    paddingBottom: 24,
-    paddingHorizontal: theme.spacing.lg,
-    paddingTop: 40,
-  },
-  headerBackground: {
-    backgroundColor: "transparent",
-  },
-  headerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  iconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.15)",
-  },
-  iconText: {
-    fontSize: 18,
-    color: theme.colors.primaryForeground,
-  },
-  titleBlock: {
     flex: 1,
-    marginHorizontal: theme.spacing.md,
+    backgroundColor: theme.colors.background,
   },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: theme.colors.primaryForeground,
+  header: {
+    backgroundColor: theme.colors.primary, // Approximating gradient
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingBottom: 20,
+    paddingHorizontal: 16,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
   },
-  headerSubtitle: {
-    fontSize: 14,
-    color: theme.colors.primaryForeground,
+  headerTop: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
   },
-  headerActions: {
+  headerLeft: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 12,
   },
-  actionBubble: {
+  headerRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  iconButton: {
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.25)",
-    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.2)",
     alignItems: "center",
-    marginLeft: 8,
+    justifyContent: "center",
   },
-  addEventButton: {
-    marginLeft: 12,
+  monthSelector: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  monthTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#fff",
+  },
+  addBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    gap: 4,
+  },
+  addBtnText: {
+    color: theme.colors.primary,
+    fontWeight: "600",
+    fontSize: 14,
+  },
+  segmentContainer: {
+    flexDirection: "row",
+    backgroundColor: "rgba(255,255,255,0.2)",
+    padding: 4,
+    borderRadius: 12,
+  },
+  segmentBtn: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: "center",
+    borderRadius: 10,
+  },
+  segmentBtnActive: {
+    backgroundColor: "#fff",
+  },
+  segmentText: {
+    color: "rgba(255,255,255,0.8)",
+    fontWeight: "600",
+    fontSize: 14,
+  },
+  segmentTextActive: {
+    color: theme.colors.primary,
+  },
+  scrollContent: {
+    padding: 16,
+  },
+  filterScroll: {
+    marginBottom: 16,
+    flexGrow: 0,
+  },
+  filterChip: {
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 8,
     paddingHorizontal: 16,
-    borderRadius: 999,
-    backgroundColor: theme.colors.primaryForeground,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  addEventText: {
-    color: theme.colors.primary,
-    fontWeight: "700",
-  },
-  viewToggle: {
-    marginTop: 24,
-    flexDirection: "row",
-    backgroundColor: "rgba(255,255,255,0.15)",
-    borderRadius: 24,
-    padding: 4,
-  },
-  viewItem: {
-    flex: 1,
-    alignItems: "center",
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  viewItemActive: {
-    backgroundColor: theme.colors.primaryForeground,
-  },
-  viewText: {
-    color: theme.colors.primaryForeground,
-    fontWeight: "600",
-  },
-  viewTextActive: {
-    color: theme.colors.primary,
-  },
-  filterRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    marginHorizontal: theme.spacing.lg,
-    marginTop: theme.spacing.md,
-    marginBottom: theme.spacing.sm,
-  },
-  filterPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderRadius: 999,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    backgroundColor: theme.colors.card,
-    marginRight: theme.spacing.sm,
-    marginBottom: theme.spacing.sm,
-    borderWidth: 1,
-    borderColor: "transparent",
-  },
-  filterPillActive: {
-    borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.primaryForeground,
-  },
-  filterIcon: {
-    marginRight: 6,
-    color: theme.colors.mutedForeground,
-  },
-  filterIconActive: {
-    color: theme.colors.primary,
-  },
-  filterText: {
-    fontWeight: "600",
-    color: theme.colors.foreground,
-  },
-  navRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginHorizontal: theme.spacing.lg,
-    marginTop: theme.spacing.sm,
-  },
-  navCircle: {
-    width: 40,
-    height: 40,
     borderRadius: 12,
     backgroundColor: theme.colors.card,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#0a1a3c",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    gap: 6,
   },
-  navArrow: {
-    fontSize: 22,
+  filterChipActive: {
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
+  },
+  filterText: {
+    fontSize: 14,
+    fontWeight: "500",
     color: theme.colors.foreground,
   },
-  todayBadge: {
-    backgroundColor: theme.colors.primaryForeground,
-    paddingHorizontal: 24,
-    paddingVertical: 10,
+  filterTextActive: {
+    color: "#fff",
+  },
+  filterEmoji: {
+    fontSize: 14,
+  },
+  dateNav: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  navArrow: {
+    padding: 8,
+    borderRadius: 12,
+    backgroundColor: theme.colors.card,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  todayBtn: {
+    backgroundColor: "rgba(59, 130, 246, 0.1)",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 12,
+  },
+  todayText: {
+    color: theme.colors.primary,
+    fontWeight: "600",
+  },
+  card: {
+    backgroundColor: theme.colors.card,
     borderRadius: 20,
+    padding: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
+    marginBottom: 20,
+  },
+  gridHeader: {
+    flexDirection: "row",
+    marginBottom: 8,
+  },
+  gridHeaderLabel: {
+    flex: 1,
+    textAlign: "center",
+    fontSize: 12,
+    fontWeight: "600",
+    color: theme.colors.mutedForeground,
+  },
+  textDanger: {
+    color: "#ef4444",
+  },
+  grid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+  },
+  dayCell: {
+    width: "14.28%",
+    aspectRatio: 1,
+    alignItems: "center",
+    justifyContent: "flex-start",
+    paddingTop: 8,
+    borderRadius: 12,
+  },
+  dayCellFaded: {
+    opacity: 0.3,
+  },
+  dayCellActive: {
+    backgroundColor: theme.colors.primary,
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  dayCellToday: {
+    backgroundColor: "rgba(59, 130, 246, 0.1)",
     borderWidth: 1,
     borderColor: theme.colors.primary,
   },
-  todayText: {
-    fontWeight: "600",
+  dayText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: theme.colors.foreground,
+    marginBottom: 4,
+  },
+  dayTextFaded: {
+    color: theme.colors.mutedForeground,
+  },
+  dayTextActive: {
+    color: "#fff",
+    fontWeight: "700",
+  },
+  dayTextToday: {
     color: theme.colors.primary,
+    fontWeight: "700",
   },
-  weekRow: {
+  eventDotRx: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    marginHorizontal: theme.spacing.lg,
-    marginTop: theme.spacing.md,
-  },
-  weekPill: {
-    width: 44,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: theme.colors.card,
-    alignItems: "center",
+    gap: 2,
     justifyContent: "center",
   },
-  weekPillActive: {
-    backgroundColor: theme.colors.primary,
-    shadowColor: "#0a1a3c",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 4,
+  eventDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
   },
-  weekDay: {
-    fontSize: 10,
-    color: theme.colors.mutedForeground,
-  },
-  weekDayActive: {
-    color: theme.colors.primaryForeground,
-  },
-  weekDate: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: theme.colors.foreground,
-  },
-  weekDateActive: {
-    color: theme.colors.primaryForeground,
-  },
-  timelineCard: {
-    marginHorizontal: theme.spacing.lg,
-    backgroundColor: theme.colors.card,
-    borderRadius: 28,
-    padding: theme.spacing.lg,
-    marginTop: theme.spacing.lg,
-    shadowColor: "#0a1a3c",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.12,
-    shadowRadius: 20,
-    elevation: 6,
-    minHeight: 360,
-  },
-  timelineHeader: {
+  weekHeaderRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: theme.spacing.md,
+    marginBottom: 12,
+    gap: 8,
   },
-  timelineDay: {
-    fontSize: 36,
+  weekHeaderCell: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 12,
+    borderRadius: 16,
+    backgroundColor: theme.colors.card,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  weekHeaderCellActive: {
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
+  },
+  weekHeaderCellToday: {
+    backgroundColor: "rgba(59, 130, 246, 0.1)",
+  },
+  weekDayLabel: {
+    fontSize: 12,
+    color: theme.colors.mutedForeground,
+    marginBottom: 4,
+  },
+  weekDateLabel: {
+    fontSize: 18,
     fontWeight: "700",
     color: theme.colors.foreground,
   },
-  timelineLabel: {
-    fontSize: 14,
-    color: theme.colors.mutedForeground,
+  textWhite: {
+    color: "#fff",
   },
-  timelineWeekday: {
+  dayHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+    marginBottom: 16,
+    paddingHorizontal: 8,
+  },
+  dayHeaderNumber: {
+    fontSize: 40,
+    fontWeight: "700",
+    color: theme.colors.foreground,
+  },
+  dayHeaderMonth: {
+    fontSize: 16,
     fontWeight: "600",
-    color: theme.colors.primary,
+    color: theme.colors.foreground,
   },
-  timelineBody: {
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
-    paddingTop: theme.spacing.md,
+  dayHeaderWeekday: {
+    fontSize: 14,
+    color: theme.colors.primary,
   },
   timelineRow: {
     flexDirection: "row",
-    alignItems: "center",
-    marginBottom: theme.spacing.md,
+    minHeight: 60,
   },
-  hourLabel: {
+  timeLabel: {
     width: 60,
+    textAlign: "right",
+    paddingRight: 12,
+    fontSize: 12,
     color: theme.colors.mutedForeground,
-    fontWeight: "600",
+    paddingTop: 8,
   },
-  hourLine: {
+  timelineContent: {
     flex: 1,
-    height: 1,
-    backgroundColor: theme.colors.border,
+    borderLeftWidth: 1,
+    borderLeftColor: theme.colors.border,
+    paddingLeft: 8,
+    paddingBottom: 8,
   },
-  upcomingCard: {
-    marginTop: theme.spacing.lg,
-    marginHorizontal: theme.spacing.lg,
-    backgroundColor: theme.colors.card,
-    borderRadius: 24,
-    padding: theme.spacing.lg,
-    shadowColor: "#0a1a3c",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
-    elevation: 4,
+  eventBlock: {
+    padding: 8,
+    borderRadius: 8,
+    marginBottom: 4,
+  },
+  eventBlockTitle: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: theme.colors.foreground,
+  },
+  section: {
+    marginTop: 8,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: "700",
     color: theme.colors.foreground,
-    marginBottom: theme.spacing.sm,
+    marginBottom: 12,
   },
-  upcomingSection: {
-    marginTop: theme.spacing.sm,
-  },
-  upcomingLabel: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: theme.colors.mutedForeground,
-    marginBottom: theme.spacing.sm,
-  },
-  upcomingRow: {
+  upcomingItem: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: theme.spacing.sm,
-  },
-  eventIcon: {
-    marginRight: theme.spacing.sm,
-    fontSize: 20,
-  },
-  eventTitle: {
-    fontWeight: "600",
-    color: theme.colors.foreground,
-  },
-  eventMeta: {
-    color: theme.colors.mutedForeground,
-    fontSize: 12,
-  },
-  placeholderRow: {
-    borderRadius: 16,
-    padding: theme.spacing.md,
-    backgroundColor: theme.colors.muted,
-  },
-  placeholderText: {
-    color: theme.colors.foreground,
-  },
-  familyCard: {
-    marginHorizontal: theme.spacing.lg,
-    marginTop: theme.spacing.md,
     backgroundColor: theme.colors.card,
-    borderRadius: 24,
-    padding: theme.spacing.lg,
-    shadowColor: "#0a1a3c",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.08,
-    shadowRadius: 18,
-    elevation: 3,
-    marginBottom: theme.spacing.xl,
+    padding: 12,
+    borderRadius: 16,
+    marginBottom: 8,
   },
-  familyRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: theme.spacing.sm,
-  },
-  familyItem: {
+  upcomingLeft: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 12,
   },
-  familyDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginRight: 6,
-  },
-  familyText: {
+  upcomingTitle: {
+    fontSize: 16,
     fontWeight: "600",
     color: theme.colors.foreground,
+  },
+  upcomingMeta: {
+    fontSize: 12,
+    color: theme.colors.mutedForeground,
+  },
+  fab: {
+    position: "absolute",
+    bottom: 100,
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: theme.colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
 });

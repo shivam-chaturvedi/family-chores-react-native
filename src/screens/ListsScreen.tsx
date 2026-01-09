@@ -12,6 +12,7 @@ import { useFamily } from "../contexts/FamilyContext";
 import { theme } from "../theme";
 import { GlobalSearch } from "../components/search/GlobalSearch";
 import { useSidebar } from "../contexts/SidebarContext";
+import { AppIcon } from "../components/ui/AppIcon";
 
 type GroceryItem = {
   id: string;
@@ -72,7 +73,7 @@ export const ListsScreen: React.FC = () => {
         <ScrollView contentContainerStyle={styles.container}>
           <View style={styles.headerRow}>
             <Pressable onPress={openSidebar} style={styles.menuButton}>
-              <Text style={styles.menuIcon}>☰</Text>
+              <AppIcon name="menu" size={20} color={theme.colors.foreground} />
             </Pressable>
             <View>
               <Text style={styles.title}>Grocery</Text>
@@ -80,20 +81,20 @@ export const ListsScreen: React.FC = () => {
             </View>
             <View style={styles.headerActions}>
               <Pressable style={styles.roundButton} onPress={() => setShowSearch(true)}>
-                <Text style={styles.iconText}>🔍</Text>
+                <AppIcon source="🔍" size={18} color={theme.colors.foreground} />
               </Pressable>
               <Pressable style={styles.roundButton}>
-                <Text style={styles.iconText}>📅</Text>
+                <AppIcon source="📅" size={18} color={theme.colors.foreground} />
               </Pressable>
               <Pressable style={styles.roundButton}>
-                <Text style={styles.iconText}>🎙️</Text>
+                <AppIcon source="🎙️" size={18} color={theme.colors.foreground} />
               </Pressable>
             </View>
           </View>
 
           <View style={styles.progressCard}>
             <View style={styles.progressIcon}>
-              <Text style={styles.iconText}>🛒</Text>
+              <AppIcon name="shoppingCart" size={28} color="#1f4c85" />
             </View>
             <View style={styles.progressContent}>
               <Text style={styles.progressTitle}>{todoItems.length}/{filteredItems.length} items</Text>
@@ -130,11 +131,11 @@ export const ListsScreen: React.FC = () => {
             />
             <View style={styles.qtyControl}>
               <Pressable style={styles.qtyButton} onPress={() => handleAddQuantity(-1)}>
-                <Text style={styles.qtySymbol}>－</Text>
+                <AppIcon name="minus" size={16} color={theme.colors.foreground} />
               </Pressable>
               <Text style={styles.qtyValue}>{quantity}</Text>
               <Pressable style={styles.qtyButton} onPress={() => handleAddQuantity(1)}>
-                <Text style={styles.qtySymbol}>＋</Text>
+                <AppIcon name="plus" size={16} color={theme.colors.foreground} />
               </Pressable>
             </View>
             <Pressable style={styles.addButton}>
@@ -159,7 +160,7 @@ export const ListsScreen: React.FC = () => {
                       </View>
                       <Text style={styles.quantityText}>{item.quantity}</Text>
                       <View style={styles.ownerBadge}>
-                        <Text style={styles.ownerIcon}>{item.icon}</Text>
+                        <AppIcon source={item.icon} size={18} color="#0b2f57" />
                       </View>
                     </View>
                   ))}
@@ -191,7 +192,7 @@ export const ListsScreen: React.FC = () => {
                     <View style={styles.todoLeft}>
                       <Text style={styles.dragHandle}>⋮⋮</Text>
                       <View style={[styles.checkbox, styles.checkboxActive]}>
-                        <Text style={styles.checkMark}>✓</Text>
+                        <AppIcon name="check" size={14} color="#0b2f57" />
                       </View>
                       <Text style={[styles.todoText, styles.completedText]}>
                         {item.name}
@@ -293,9 +294,6 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 4,
   },
-  iconText: {
-    fontSize: 20,
-  },
   progressCard: {
     flexDirection: "row",
     alignItems: "center",
@@ -391,9 +389,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  qtySymbol: {
-    fontSize: 22,
-  },
   qtyValue: {
     width: 24,
     textAlign: "center",
@@ -466,11 +461,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#2c9a59",
     borderColor: "#2c9a59",
   },
-  checkMark: {
-    color: "#fff",
-    fontSize: 16,
-    textAlign: "center",
-  },
   todoText: {
     fontWeight: "600",
     color: theme.colors.foreground,
@@ -491,9 +481,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#e1e6ef",
     justifyContent: "center",
     alignItems: "center",
-  },
-  ownerIcon: {
-    fontSize: 16,
   },
   listWrapper: {
     backgroundColor: theme.colors.card,

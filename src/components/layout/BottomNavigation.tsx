@@ -1,6 +1,7 @@
 import React from "react";
-import { View, Pressable, Text, StyleSheet } from "react-native";
+import { View, Text, Pressable, StyleSheet } from "react-native";
 import { theme } from "../../theme";
+import { AppIcon, AppIconName } from "../ui/AppIcon";
 
 export type BottomNavRoute =
   | "home"
@@ -9,12 +10,12 @@ export type BottomNavRoute =
   | "lists"
   | "more";
 
-const navItems: { label: string; route: BottomNavRoute; icon: string }[] = [
-  { label: "Home", route: "home", icon: "🏠" },
-  { label: "Calendar", route: "calendar", icon: "📅" },
-  { label: "Tasks", route: "tasks", icon: "✅" },
-  { label: "Lists", route: "lists", icon: "🛒" },
-  { label: "More", route: "more", icon: "⋯" },
+const navItems: { label: string; route: BottomNavRoute; iconName: AppIconName }[] = [
+  { label: "Home", route: "home", iconName: "home" },
+  { label: "Calendar", route: "calendar", iconName: "calendar" },
+  { label: "Tasks", route: "tasks", iconName: "checkSquare" },
+  { label: "Lists", route: "lists", iconName: "shoppingCart" },
+  { label: "More", route: "more", iconName: "more" },
 ];
 
 interface BottomNavigationProps {
@@ -36,9 +37,11 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
             onPress={() => onNavigate?.(item.route)}
             style={[styles.navItem, isActive && styles.navItemActive]}
           >
-            <Text style={[styles.icon, isActive && styles.iconActive]}>
-              {item.icon}
-            </Text>
+            <AppIcon
+              name={item.iconName}
+              size={18}
+              color={isActive ? theme.colors.primary : theme.colors.mutedForeground}
+            />
             <Text style={[styles.label, isActive && styles.labelActive]}>
               {item.label}
             </Text>
@@ -74,15 +77,6 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.card,
     borderColor: "#dfe9f5",
     borderWidth: 1,
-  },
-  icon: {
-    fontSize: 12,
-    color: theme.colors.mutedForeground,
-    marginBottom: 2,
-    fontWeight: "600",
-  },
-  iconActive: {
-    color: theme.colors.primary,
   },
   label: {
     fontSize: 12,

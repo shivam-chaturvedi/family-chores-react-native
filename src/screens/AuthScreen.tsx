@@ -8,6 +8,7 @@ import {
   TextInput,
 } from "react-native";
 import { theme } from "../theme";
+import { AppIcon } from "../components/ui/AppIcon";
 
 interface AuthScreenProps {
   onAuthenticated: () => void;
@@ -40,9 +41,13 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
     >
       <View style={styles.header}>
         <View style={styles.logoWrapper}>
-          <View style={styles.logoCircle}>
-            <Text style={styles.logoIcon}>🏠</Text>
-            <Text style={styles.logoBadge}>🔰</Text>
+          <View style={styles.logoSquare}>
+            <View style={styles.logoContainer}>
+              <AppIcon name="home" size={32} color={theme.colors.primary} />
+              <View style={styles.shieldBadge}>
+                <AppIcon name="shield" size={16} color={theme.colors.secondary} />
+              </View>
+            </View>
           </View>
         </View>
         <Text style={styles.title}>Family Chores</Text>
@@ -89,7 +94,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
           <View style={styles.fieldStack}>
             {!isLogin && (
               <View style={styles.inputRow}>
-                <Text style={styles.inputIcon}>👤</Text>
+                <AppIcon name="user" size={20} color={theme.colors.mutedForeground} style={styles.inputIcon} />
                 <TextInput
                   style={styles.textInput}
                   placeholder="Full Name"
@@ -103,7 +108,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
             )}
 
             <View style={styles.inputRow}>
-              <Text style={styles.inputIcon}>✉️</Text>
+              <AppIcon name="mail" size={20} color={theme.colors.mutedForeground} style={styles.inputIcon} />
               <TextInput
                 style={styles.textInput}
                 placeholder="Email Address"
@@ -118,7 +123,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
             </View>
 
             <View style={styles.inputRow}>
-              <Text style={styles.inputIcon}>🔒</Text>
+              <AppIcon name="lock" size={20} color={theme.colors.mutedForeground} style={styles.inputIcon} />
               <TextInput
                 style={styles.textInput}
                 placeholder="Shared Password"
@@ -133,7 +138,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                 onPress={() => setShowPassword((prev) => !prev)}
                 style={styles.eyeButton}
               >
-                <Text style={styles.eyeText}>{showPassword ? "👁️" : "🙈"}</Text>
+                <AppIcon name={showPassword ? "eye" : "eyeOff"} size={20} color={theme.colors.mutedForeground} />
               </Pressable>
             </View>
           </View>
@@ -161,7 +166,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
 
           <Pressable style={styles.googleButton}>
             <View style={styles.googleIcon}>
-              <Text style={styles.googleIconText}>G</Text>
+              <Text style={{ fontSize: 18, fontWeight: 'bold' }}>G</Text>
             </View>
             <Text style={styles.googleButtonText}>Continue with Google</Text>
           </Pressable>
@@ -169,7 +174,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
 
         <View style={styles.infoCard}>
           <View style={styles.infoIcon}>
-            <Text style={styles.infoIconText}>🛡️</Text>
+            <AppIcon name="shield" size={20} color={theme.colors.primaryForeground} />
           </View>
           <View style={styles.infoTextContainer}>
             <Text style={styles.infoTitle}>One Account, Multiple Profiles</Text>
@@ -215,24 +220,31 @@ const styles = StyleSheet.create({
   logoWrapper: {
     marginBottom: theme.spacing.sm,
   },
-  logoCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 26,
+  logoSquare: {
+    width: 64,
+    height: 64,
+    borderRadius: 16,
     backgroundColor: theme.colors.card,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "#bdd5ff",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
   },
-  logoIcon: {
-    fontSize: 32,
+  logoContainer: {
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  logoBadge: {
+  shieldBadge: {
     position: "absolute",
-    right: 8,
-    bottom: 6,
-    fontSize: 18,
+    right: -6,
+    bottom: -6,
+    backgroundColor: theme.colors.card,
+    borderRadius: 4,
+    padding: 1,
   },
   title: {
     fontSize: 28,

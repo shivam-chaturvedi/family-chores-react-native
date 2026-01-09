@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { useNavigation, NavigationProp } from "@react-navigation/native";
 import { theme } from "../../theme";
+import { AppIcon } from "../ui/AppIcon";
 
 interface AppSidebarProps {
   open: boolean;
@@ -109,7 +110,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
         >
           <View style={styles.headerGradient}>
             <Pressable onPress={onClose} style={styles.closeIcon}>
-              <Text style={styles.closeText}>×</Text>
+              <AppIcon name="x" size={22} color="#f5f8ff" />
             </Pressable>
             <View style={styles.profileSummary}>
               <View style={styles.avatar}>
@@ -121,14 +122,20 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
               </View>
             </View>
             <Pressable
-              style={styles.settingsButton}
+              style={[styles.settingsButton, styles.settingsContent]}
               onPress={() => handleNavigate("Theme")}
             >
-              <Text style={styles.settingsText}>⚙️ Settings</Text>
+              <AppIcon source="⚙️" size={16} color="#cbd6ea" style={styles.settingsIcon} />
+              <Text style={styles.settingsText}>Settings</Text>
             </Pressable>
           </View>
 
-          <ScrollView contentContainerStyle={styles.content}>
+          <ScrollView
+            style={styles.scrollArea}
+            contentContainerStyle={styles.content}
+            showsVerticalScrollIndicator
+            nestedScrollEnabled
+          >
             <Text style={styles.sectionLabel}>Switch Profile</Text>
             {profiles.map((profile) => (
               <Pressable
@@ -138,9 +145,9 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                   profile.badge && styles.profileRowActive,
                 ]}
               >
-                <View style={styles.profileAvatar}>
-                  <Text style={styles.profileAvatarText}>{profile.icon}</Text>
-                </View>
+              <View style={styles.profileAvatar}>
+                <AppIcon source={profile.icon} size={28} />
+              </View>
                 <Text
                   style={[
                     styles.profileText,
@@ -162,7 +169,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                 style={styles.linkRow}
                 onPress={() => handleNavigate(item.route)}
               >
-                <Text style={styles.linkIcon}>{item.icon}</Text>
+                <AppIcon source={item.icon} size={20} style={styles.linkIcon} />
                 <Text style={styles.linkText}>{item.label}</Text>
                 <Text style={styles.linkChevron}>›</Text>
               </Pressable>
@@ -177,7 +184,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                 style={styles.linkRow}
                 onPress={() => handleNavigate(item.route)}
               >
-                <Text style={styles.linkIcon}>{item.icon}</Text>
+                <AppIcon source={item.icon} size={20} style={styles.linkIcon} />
                 <Text style={styles.linkText}>{item.label}</Text>
               </Pressable>
             ))}
@@ -266,12 +273,25 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.sm,
     borderRadius: 999,
   },
+  settingsContent: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  settingsIcon: {
+    marginRight: theme.spacing.sm,
+  },
   settingsText: {
     color: "#cbd6ea",
     fontWeight: "600",
   },
+  scrollArea: {
+    flex: 1,
+    maxHeight: "100%",
+  },
   content: {
     padding: theme.spacing.lg,
+    paddingBottom: theme.spacing.xl,
+    flexGrow: 1,
   },
   sectionLabel: {
     fontSize: 12,
@@ -303,9 +323,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginRight: theme.spacing.md,
   },
-  profileAvatarText: {
-    fontSize: 24,
-  },
   profileText: {
     flex: 1,
     fontSize: 16,
@@ -333,7 +350,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   linkIcon: {
-    fontSize: 20,
     marginRight: theme.spacing.md,
   },
   linkText: {

@@ -1,13 +1,15 @@
 import "react-native-gesture-handler";
 import React from "react";
-import { StatusBar, StyleSheet, View } from "react-native";
+import { StatusBar, StyleSheet } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { theme } from "./src/theme";
 import { FamilyProvider } from "./src/contexts/FamilyContext";
 import { MealPlanProvider } from "./src/contexts/MealPlanContext";
 import { SidebarProvider } from "./src/contexts/SidebarContext";
 import { ToastProvider } from "./src/components/ui/Toast";
+import { ErrorBoundary } from "./src/components/ErrorBoundary";
 import { AppNavigator } from "./src/navigation/AppNavigator";
 
 const App = () => {
@@ -22,9 +24,11 @@ const App = () => {
                 backgroundColor={theme.colors.background}
                 animated
               />
-              <View style={styles.appWrapper}>
-                <AppNavigator />
-              </View>
+              <SafeAreaView style={styles.appWrapper} edges={["top", "bottom", "left", "right"]}>
+                <ErrorBoundary>
+                  <AppNavigator />
+                </ErrorBoundary>
+              </SafeAreaView>
             </ToastProvider>
           </SidebarProvider>
         </MealPlanProvider>

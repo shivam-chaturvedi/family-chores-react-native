@@ -1,8 +1,9 @@
 import React, { useCallback } from "react";
-import { View, StyleSheet, Pressable, Text } from "react-native";
+import { View, StyleSheet, Pressable } from "react-native";
 import { NavigationProp, useNavigation } from "@react-navigation/native";
 import { theme } from "../../theme";
 import { BottomNavigation, BottomNavRoute } from "./BottomNavigation";
+import { AppIcon } from "../ui/AppIcon";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -41,7 +42,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
       <View style={styles.content}>{children}</View>
       {showAddButton && (
         <Pressable style={styles.addButton} onPress={onAddPress}>
-          <Text style={styles.addIcon}>＋</Text>
+          <AppIcon name="plus" size={34} color={theme.colors.primaryForeground} />
         </Pressable>
       )}
       {showNav && (
@@ -78,10 +79,5 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 12,
     elevation: 8,
-  },
-  addIcon: {
-    fontSize: 30,
-    color: theme.colors.primaryForeground,
-    lineHeight: 30,
   },
 });

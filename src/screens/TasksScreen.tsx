@@ -11,6 +11,7 @@ import { theme } from "../theme";
 import { AddTaskModal } from "../components/modals/AddTaskModal";
 import { GlobalSearch } from "../components/search/GlobalSearch";
 import { useSidebar } from "../contexts/SidebarContext";
+import { AppIcon } from "../components/ui/AppIcon";
 
 interface Task {
   id: string;
@@ -84,18 +85,18 @@ export const TasksScreen: React.FC = () => {
         <ScrollView contentContainerStyle={styles.container}>
           <View style={styles.header}>
             <Pressable onPress={openSidebar} style={styles.menuButton}>
-              <Text style={styles.menuIcon}>☰</Text>
+              <AppIcon name="menu" size={20} color={theme.colors.foreground} />
             </Pressable>
             <Text style={styles.title}>Tasks</Text>
             <View style={styles.headerActions}>
               <Pressable style={styles.roundAction} onPress={() => setShowSearch(true)}>
-                <Text style={styles.iconText}>🔍</Text>
+                <AppIcon source="🔍" size={18} color={theme.colors.foreground} />
               </Pressable>
               <Pressable style={styles.roundAction}>
-                <Text style={styles.iconText}>⚲</Text>
+                <AppIcon source="⚲" size={18} color={theme.colors.foreground} />
               </Pressable>
               <Pressable style={styles.plusAction} onPress={() => setShowAddTask(true)}>
-                <Text style={styles.plusIcon}>＋</Text>
+                <AppIcon name="plus" size={18} color={theme.colors.primary} />
               </Pressable>
             </View>
           </View>
@@ -140,17 +141,26 @@ export const TasksScreen: React.FC = () => {
                     {task.status === "done" && <Text style={styles.checkMark}>✓</Text>}
                   </Pressable>
                   <View style={styles.taskDetails}>
-                    <Text style={[styles.taskTitle, task.status === "done" && styles.taskTextDone]}>
-                      {task.icon} {task.name}
-                    </Text>
+                    <View style={styles.taskTitleRow}>
+                      <AppIcon source={task.icon} size={20} color={theme.colors.primary} style={styles.taskListIcon} />
+                      <Text style={[styles.taskTitle, task.status === "done" && styles.taskTextDone]}>
+                        {task.name}
+                      </Text>
+                    </View>
                     <View style={styles.metaRow}>
                       <View style={[styles.priorityBadge, { backgroundColor: priorityStyle.background }]}>
                         <Text style={[styles.priorityText, { color: priorityStyle.color }]}>
                           {priorityStyle.label}
                         </Text>
                       </View>
-                      <Text style={styles.metaText}>⏰ {task.due}</Text>
-                      <Text style={styles.metaText}>🧑 {task.assignee}</Text>
+                      <View style={styles.metaItem}>
+                        <AppIcon name="clock" size={14} color={palette.ocean} style={styles.metaIcon} />
+                        <Text style={styles.metaText}>{task.due}</Text>
+                      </View>
+                      <View style={styles.metaItem}>
+                        <AppIcon name="user" size={14} color={palette.ocean} style={styles.metaIcon} />
+                        <Text style={styles.metaText}>{task.assignee}</Text>
+                      </View>
                     </View>
                   </View>
                 </View>
@@ -159,7 +169,8 @@ export const TasksScreen: React.FC = () => {
           </View>
 
           <Pressable style={styles.addNewRow}>
-            <Text style={styles.addNewText}>＋ Add new task</Text>
+            <AppIcon name="plus" size={16} color={theme.colors.primary} style={styles.addNewIcon} />
+            <Text style={styles.addNewText}>Add new task</Text>
           </Pressable>
         </ScrollView>
       </AppLayout>
@@ -194,9 +205,6 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  menuIcon: {
-    fontSize: 20,
-  },
   title: {
     flex: 1,
     fontSize: 26,
@@ -222,9 +230,6 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 3,
   },
-  iconText: {
-    fontSize: 18,
-  },
   plusAction: {
     width: 48,
     height: 48,
@@ -237,10 +242,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.18,
     shadowRadius: 10,
     elevation: 5,
-  },
-  plusIcon: {
-    fontSize: 28,
-    color: theme.colors.primary,
   },
   tabs: {
     flexDirection: "row",
@@ -333,12 +334,16 @@ const styles = StyleSheet.create({
     backgroundColor: "#8bc34a",
     borderColor: "#8bc34a",
   },
-  checkMark: {
-    fontSize: 18,
-    color: "#fff",
-  },
   taskDetails: {
     flex: 1,
+  },
+  taskTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 6,
+  },
+  taskListIcon: {
+    marginRight: theme.spacing.sm,
   },
   taskTitle: {
     fontSize: 16,
@@ -353,7 +358,15 @@ const styles = StyleSheet.create({
   metaRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: theme.spacing.sm,
+    flexWrap: "wrap",
+  },
+  metaItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginLeft: theme.spacing.sm,
+  },
+  metaIcon: {
+    marginRight: theme.spacing.xs,
   },
   priorityBadge: {
     borderRadius: 999,
@@ -370,6 +383,12 @@ const styles = StyleSheet.create({
   addNewRow: {
     marginTop: theme.spacing.sm,
     alignSelf: "center",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  addNewIcon: {
+    marginRight: theme.spacing.xs,
   },
   addNewText: {
     color: theme.colors.primary,
