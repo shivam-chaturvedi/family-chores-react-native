@@ -13,6 +13,8 @@ import {
 import { AppLayout } from "../components/layout/AppLayout";
 import { theme } from "../theme";
 import { useSidebar } from "../contexts/SidebarContext";
+import { useNavigation } from "@react-navigation/native";
+import { useToast } from "../components/ui/Toast";
 import {
   ChevronLeft,
   ChevronDown,
@@ -635,8 +637,19 @@ const TutorialModal: React.FC<TutorialModalProps> = ({ visible, onClose }) => {
 // --- Main Help Screen ---
 export const HelpScreen: React.FC = () => {
   const { openSidebar } = useSidebar();
+  const navigation = useNavigation<any>();
+  const { showToast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<"features" | "faq">("features");
+
+  const handleNavigate = (path: string) => {
+    try {
+      navigation.navigate(path);
+    } catch (error) {
+      console.error(error);
+      showToast({ title: "Navigation Error", description: "Could not open screen", type: "warning" });
+    }
+  };
 
   const [expandedFeature, setExpandedFeature] = useState<string | null>(null);
   const [expandedFaqCategory, setExpandedFaqCategory] = useState<string | null>(null);
@@ -787,7 +800,7 @@ export const HelpScreen: React.FC = () => {
                         ))}
                       </View>
 
-                      <Pressable style={styles.goToBtn}>
+                      <Pressable style={styles.goToBtn} onPress={() => handleNavigate(item.path)}>
                         <Text style={styles.goToText}>Go to {item.title} →</Text>
                       </Pressable>
                     </View>

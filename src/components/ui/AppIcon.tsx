@@ -92,6 +92,10 @@ import {
   MapPin,
   ChevronDown,
   RotateCw,
+  GripVertical,
+  ArrowLeft,
+  Trash2,
+  Bookmark,
 } from "lucide-react-native";
 import { theme } from "../../theme";
 
@@ -102,6 +106,7 @@ const ICON_COMPONENTS = {
   bed: Bed,
   bell: Bell,
   book: BookOpen,
+  bookmark: Bookmark,
   briefcase: Briefcase,
   building: Building,
   calendar: Calendar,
@@ -186,6 +191,9 @@ const ICON_COMPONENTS = {
   pin: MapPin,
   chevronDown: ChevronDown,
   rotateCw: RotateCw,
+  gripVertical: GripVertical,
+  arrowLeft: ArrowLeft,
+  trash: Trash2,
 } as const;
 
 export type AppIconName = keyof typeof ICON_COMPONENTS;

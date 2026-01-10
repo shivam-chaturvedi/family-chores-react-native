@@ -17,6 +17,7 @@ import { useFamily } from "../contexts/FamilyContext";
 import { AppIcon } from "../components/ui/AppIcon";
 import { recipes, collections, Recipe } from "../data/recipes";
 import { RecipeDetailModal } from "../components/modals/RecipeDetailModal";
+import { useToast } from "../components/ui/Toast";
 
 const preferences = [
   "Vegetarian",
@@ -66,23 +67,30 @@ export const RecipesScreen: React.FC = () => {
     setShowRecipeDetail(true);
   };
 
+  const { showToast } = useToast();
+
   // Handle Add to Grocery List (single item or all items)
   // For the purpose of the modal prop, we can wrap the context function
   const handleAddToGroceryList = (recipe: Recipe) => {
-    // In a real app, you might iterate and add all ingredients
-    // or adding just the recipe as a meta-item.
-    // For now, let's just add the first ingredient to demonstrate/test.
-    // Or we loop:
-    recipe.ingredients.forEach(ing => {
-      addGroceryItem({
-        name: ing.name,
-        quantity: ing.quantity,
-        unit: ing.unit,
-        addedBy: "1", // Current user ID (mock)
-        completed: false,
+    try {
+      // In a real app, you might iterate and add all ingredients
+      // or adding just the recipe as a meta-item.
+      // For now, let's just add the first ingredient to demonstrate/test.
+      // Or we loop:
+      recipe.ingredients.forEach(ing => {
+        addGroceryItem({
+          name: ing.name,
+          quantity: ing.quantity,
+          unit: ing.unit,
+          addedBy: "1", // Current user ID (mock)
+          completed: false,
+        });
       });
-    });
-    // Maybe show a toast/alert here?
+      showToast({ title: "Success", description: "Ingredients added to grocery list", type: "success" });
+    } catch (error) {
+      console.error(error);
+      showToast({ title: "Error", description: "Failed to add ingredients", type: "warning" });
+    }
   };
 
   const renderForYou = () => (

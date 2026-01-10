@@ -12,6 +12,7 @@ import { useNavigation } from '@react-navigation/native';
 import { AppLayout } from '../components/layout/AppLayout';
 import { theme } from '../theme';
 import { AppIcon } from '../components/ui/AppIcon';
+import { useToast } from '../components/ui/Toast';
 import { useMealPlan, MealType } from '../contexts/MealPlanContext';
 import { AddMealModal } from '../components/modals/AddMealModal';
 import { format, addDays, subDays, isToday, isTomorrow } from 'date-fns';
@@ -42,6 +43,8 @@ export const MealPlanScreen: React.FC = () => {
     return acc + getMealsForDay(format(day, 'yyyy-MM-dd')).length;
   }, 0);
 
+  const { showToast } = useToast();
+
   const handleNavigateWeek = (direction: 'prev' | 'next') => {
     setCurrentWeekStart(direction === 'prev' ? subDays(currentWeekStart, 7) : addDays(currentWeekStart, 7));
   };
@@ -52,8 +55,32 @@ export const MealPlanScreen: React.FC = () => {
 
   const handleSelectRecipe = (recipeId: number) => {
     if (addMealModal) {
-      addMealToPlan(recipeId, addMealModal.date, addMealModal.mealType);
-      setAddMealModal(null);
+      try {
+        addMealToPlan(recipeId, addMealModal.date, addMealModal.mealType);
+        showToast({ title: "Meal Added", description: "Recipe added to your plan", type: "success" });
+        setAddMealModal(null);
+      } catch (error) {
+        console.error(error);
+        showToast({ title: "Error", description: "Failed to add meal", type: "warning" });
+      }
+    }
+  };
+
+  const handleRemoveMeal = (id: string) => {
+    try {
+      removeMealFromPlan(id);
+      showToast({ title: "Removed", description: "Meal removed from plan", type: "default" });
+    } catch (error) {
+      showToast({ title: "Error", description: "Could not remove meal", type: "warning" });
+    }
+  };
+
+  const handleClearPlan = () => {
+    try {
+      clearWeekPlan();
+      showToast({ title: "Plan Cleared", description: "All meals for this week removed", type: "default" });
+    } catch (error) {
+      showToast({ title: "Error", description: "Could not clear plan", type: "warning" });
     }
   };
 
@@ -122,7 +149,7 @@ export const MealPlanScreen: React.FC = () => {
                           <Text style={[styles.slotLabel, { color: config.iconColor }]}>{config.label}</Text>
                         </View>
                         {meal && (
-                          <Pressable onPress={() => removeMealFromPlan(meal.id)} hitSlop={8}>
+                          <Pressable onPress={() => handleRemoveMeal(meal.id)} hitSlop={8}>
                             <AppIcon name="x" size={14} color={theme.colors.mutedForeground} />
                           </Pressable>
                         )}

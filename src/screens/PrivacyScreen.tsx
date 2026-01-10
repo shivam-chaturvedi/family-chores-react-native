@@ -10,6 +10,7 @@ import {
 import { AppLayout } from "../components/layout/AppLayout";
 import { theme } from "../theme";
 import { useSidebar } from "../contexts/SidebarContext";
+import { useToast } from "../components/ui/Toast";
 import {
     ChevronLeft,
     Shield,
@@ -29,6 +30,7 @@ const securitySettings = [
 
 export const PrivacyScreen: React.FC = () => {
     const { openSidebar } = useSidebar();
+    const { showToast } = useToast();
     const [settings, setSettings] = useState<Record<string, boolean>>({
         bio: true,
         app: false,
@@ -36,7 +38,17 @@ export const PrivacyScreen: React.FC = () => {
     });
 
     const toggleSetting = (id: string) => {
-        setSettings(prev => ({ ...prev, [id]: !prev[id] }));
+        try {
+            setSettings(prev => {
+                const newState = { ...prev, [id]: !prev[id] };
+                // Simulate checking if update is allowed or API call
+                return newState;
+            });
+            // Optional: show toast only on specific actions or just silent success?
+            // showToast({ title: "Updated", description: "Security setting updated", type: "default" });
+        } catch (error) {
+            showToast({ title: "Error", description: "Failed to update setting", type: "warning" });
+        }
     };
 
     return (
