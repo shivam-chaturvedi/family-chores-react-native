@@ -62,7 +62,16 @@ export const TabNavigator = () => (
     tabBar={(props) => (
       <BottomNavigation
         activeRoute={props.state.routeNames[props.state.index] as BottomNavRoute}
-        onNavigate={(route) => props.navigation.navigate(route)}
+        onNavigate={(route) => {
+          if (route === 'home') {
+            props.navigation.reset({
+              index: 0,
+              routes: [{ name: 'home' }],
+            });
+          } else {
+            props.navigation.navigate(route);
+          }
+        }}
       />
     )}
   >

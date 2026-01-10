@@ -165,8 +165,8 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
           </View>
 
           <Pressable style={styles.googleButton}>
-            <View style={styles.googleIcon}>
-              <Text style={{ fontSize: 18, fontWeight: 'bold' }}>G</Text>
+            <View style={{ marginRight: 12 }}>
+              <Text style={{ fontSize: 24, fontWeight: "900", color: "#4285F4" }}>G</Text>
             </View>
             <Text style={styles.googleButtonText}>Continue with Google</Text>
           </Pressable>
@@ -372,25 +372,19 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#dfe9f5",
+    borderColor: "#E2E8F0",
     borderRadius: 16,
-    paddingVertical: theme.spacing.sm,
+    paddingVertical: 16,
     justifyContent: "center",
-    backgroundColor: "#f5f7ff",
+    backgroundColor: "#fff",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
   },
   googleIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    backgroundColor: theme.colors.card,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: theme.spacing.sm,
-    shadowColor: "#0b1f3c",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    elevation: 3,
+    marginRight: 12,
   },
   googleIconText: {
     fontSize: 18,
@@ -398,45 +392,46 @@ const styles = StyleSheet.create({
     color: theme.colors.foreground,
   },
   googleButtonText: {
-    fontWeight: "600",
-    color: theme.colors.foreground,
+    fontWeight: "700",
+    color: "#1E293B",
     fontSize: 16,
   },
   infoCard: {
     flexDirection: "row",
     alignItems: "flex-start",
-    backgroundColor: "#dfe9f5",
+    backgroundColor: "#EFF6FF", // Light Blue 50
     borderRadius: 16,
-    padding: theme.spacing.md,
-    marginTop: theme.spacing.sm,
+    padding: 16,
+    marginTop: 24,
     borderWidth: 1,
-    borderColor: "#c4d6f6",
+    borderColor: "#DBEAFE", // Blue 100
   },
   infoIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: theme.colors.primary,
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: "#2563EB", // Blue 600
     alignItems: "center",
     justifyContent: "center",
-    marginRight: theme.spacing.md,
+    marginRight: 12,
   },
   infoIconText: {
     fontSize: 22,
-    color: theme.colors.primaryForeground,
+    color: "#fff",
   },
   infoTextContainer: {
     flex: 1,
   },
   infoTitle: {
-    fontWeight: "600",
-    color: theme.colors.foreground,
+    fontWeight: "700",
+    color: "#1E293B", // Slate 800
     marginBottom: 4,
+    fontSize: 15,
   },
   infoSubtitle: {
-    fontSize: 12,
-    color: theme.colors.mutedForeground,
-    lineHeight: 18,
+    fontSize: 13,
+    color: "#475569", // Slate 600
+    lineHeight: 20,
   },
   footer: {
     paddingHorizontal: theme.spacing.lg,

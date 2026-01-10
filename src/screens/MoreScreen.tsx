@@ -187,7 +187,7 @@ export const MoreScreen: React.FC = () => {
           ))}
 
           <Pressable style={styles.logoutButton}>
-            <AppIcon name="x" size={18} color={theme.colors.danger} />
+            <AppIcon name="logOut" size={20} color={theme.colors.danger} />
             <Text style={styles.logoutText}>Sign Out</Text>
           </Pressable>
 
@@ -363,11 +363,18 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(239, 68, 68, 0.05)",
+    backgroundColor: theme.colors.card,
     paddingVertical: 16,
-    borderRadius: 20, // Squared
+    borderRadius: 16,
     gap: 8,
     marginBottom: theme.spacing.md,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   logoutText: {
     color: theme.colors.danger,

@@ -15,10 +15,14 @@ enableScreens();
 
 const Stack = createNativeStackNavigator();
 
+import { ErrorBoundary } from "../components/ErrorBoundary";
+
 export const AppNavigator = () => (
-  <NavigationContainer>
-    <AppNavigatorInner />
-  </NavigationContainer>
+  <ErrorBoundary>
+    <NavigationContainer>
+      <AppNavigatorInner />
+    </NavigationContainer>
+  </ErrorBoundary>
 );
 
 const AppNavigatorInner = () => {

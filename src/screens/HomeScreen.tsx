@@ -109,7 +109,7 @@ export const HomeScreen: React.FC = () => {
     { label: "Task", iconName: "checkSquare", action: () => setShowAddTask(true), color: "#16A34A", bg: "#DCFCE7" },
     { label: "Item", iconName: "shoppingCart", action: () => setShowAddItem(true), color: "#EA580C", bg: "#FFEDD5" },
     // { label: "Recipe", iconName: "utensils", action: () => { }, color: "#4F46E5", bg: "#E0E7FF" },
-    { label: "Recipe", iconName: "utensils", action: () => { }, color: theme.colors.primary, bg: theme.colors.muted },
+    { label: "Recipe", iconName: "utensils", action: () => navigation.navigate("Recipes" as never), color: theme.colors.primary, bg: theme.colors.muted },
     { label: "Document", iconName: "file", action: () => navigation.navigate("Documents" as never), color: "#0891B2", bg: "#CFFAFE" },
   ];
 
@@ -359,7 +359,7 @@ export const HomeScreen: React.FC = () => {
       <GlobalSearch open={showSearch} onClose={() => setShowSearch(false)} />
       <GettingStartedTutorial open={showTutorial} onClose={handleTutorialClose} />
 
-      <AddEventModal open={showAddEvent} onClose={() => setShowAddEvent(false)} />
+      <AddEventModal open={showAddEvent} onOpenChange={setShowAddEvent} />
       <AddTaskModal open={showAddTask} onClose={() => setShowAddTask(false)} />
       <AddItemModal open={showAddItem} onClose={() => setShowAddItem(false)} />
       <AddMemberModal open={showAddMember} onClose={() => setShowAddMember(false)} />

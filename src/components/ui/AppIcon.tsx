@@ -96,6 +96,7 @@ import {
   ArrowLeft,
   Trash2,
   Bookmark,
+  LogOut,
 } from "lucide-react-native";
 import { theme } from "../../theme";
 
@@ -140,6 +141,7 @@ const ICON_COMPONENTS = {
   leaf: Leaf,
   list: List,
   lock: Lock,
+  logOut: LogOut,
   mail: Mail,
   menu: Menu,
   mic: Mic,
