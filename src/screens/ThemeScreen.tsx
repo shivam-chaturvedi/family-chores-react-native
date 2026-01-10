@@ -6,6 +6,7 @@ import {
   ScrollView,
   Pressable,
 } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 import { AppLayout } from "../components/layout/AppLayout";
 import { theme } from "../theme";
 import { useSidebar } from "../contexts/SidebarContext";
@@ -32,6 +33,7 @@ const accentColors = [
 ];
 
 export const ThemeScreen: React.FC = () => {
+  const navigation = useNavigation();
   const [selectedTheme, setSelectedTheme] = useState("light");
   const [selectedAccent, setSelectedAccent] = useState("blue");
   const [textSize, setTextSize] = useState(0.5); // 0 to 1 for mock slider
@@ -44,7 +46,7 @@ export const ThemeScreen: React.FC = () => {
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.headerRow}>
-          <Pressable onPress={openSidebar} style={styles.backButton}>
+          <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
             <ChevronLeft size={24} color={theme.colors.foreground} />
           </Pressable>
           <Text style={styles.title}>Theme</Text>

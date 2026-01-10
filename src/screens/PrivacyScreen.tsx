@@ -7,6 +7,7 @@ import {
     Pressable,
     Switch,
 } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 import { AppLayout } from "../components/layout/AppLayout";
 import { theme } from "../theme";
 import { useSidebar } from "../contexts/SidebarContext";
@@ -29,6 +30,7 @@ const securitySettings = [
 ];
 
 export const PrivacyScreen: React.FC = () => {
+    const navigation = useNavigation();
     const { openSidebar } = useSidebar();
     const { showToast } = useToast();
     const [settings, setSettings] = useState<Record<string, boolean>>({
@@ -56,7 +58,7 @@ export const PrivacyScreen: React.FC = () => {
             <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
                 {/* Header */}
                 <View style={styles.headerRow}>
-                    <Pressable onPress={openSidebar} style={styles.backButton}>
+                    <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
                         <ChevronLeft size={24} color={theme.colors.foreground} />
                     </Pressable>
                     <Text style={styles.title}>Privacy & Security</Text>

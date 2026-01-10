@@ -8,6 +8,7 @@ import {
   Switch,
   TextInput,
 } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 import { AppLayout } from "../components/layout/AppLayout";
 import { theme } from "../theme";
 import { useSidebar } from "../contexts/SidebarContext";
@@ -36,6 +37,7 @@ const notificationTypes = [
 ];
 
 export const NotificationsScreen: React.FC = () => {
+  const navigation = useNavigation();
   const { openSidebar } = useSidebar();
 
   // Dropdown options
@@ -121,7 +123,7 @@ export const NotificationsScreen: React.FC = () => {
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
-          <Pressable onPress={openSidebar} style={styles.iconButton}>
+          <Pressable onPress={() => navigation.goBack()} style={styles.iconButton}>
             <ChevronLeft size={24} color={theme.colors.foreground} />
           </Pressable>
           <Text style={styles.headerTitle}>Notifications</Text>

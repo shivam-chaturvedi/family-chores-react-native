@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 import { AppLayout } from "../components/layout/AppLayout";
 import { theme } from "../theme";
 import { useSidebar } from "../contexts/SidebarContext";
@@ -29,6 +30,7 @@ const dataOptions = [
 ];
 
 export const DataExportScreen: React.FC = () => {
+  const navigation = useNavigation();
   const [format, setFormat] = useState("json");
   const { openSidebar } = useSidebar();
   const [selectedData, setSelectedData] = useState(
@@ -52,7 +54,7 @@ export const DataExportScreen: React.FC = () => {
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.headerRow}>
-          <Pressable onPress={openSidebar} style={styles.backButton}>
+          <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
             <ChevronLeft size={24} color={theme.colors.foreground} />
           </Pressable>
           <Text style={styles.title}>Data Export</Text>

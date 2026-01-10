@@ -680,7 +680,7 @@ export const HelpScreen: React.FC = () => {
         <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
           {/* Header */}
           <View style={styles.headerRow}>
-            <Pressable onPress={openSidebar} style={styles.backButton}>
+            <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
               <ChevronLeft size={24} color={theme.colors.foreground} />
             </Pressable>
             <View>
