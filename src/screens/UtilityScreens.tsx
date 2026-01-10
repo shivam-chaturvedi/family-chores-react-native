@@ -12,7 +12,7 @@ const createUtilityScreen = (title: string, subtitle?: string) => () => (
   </AppLayout>
 );
 
-export const DocumentsScreen = createUtilityScreen("Documents", "Store and organize family documents");
+
 export const PrivacyScreen = createUtilityScreen("Privacy", "Privacy and security preferences");
 export const ExportScreen = createUtilityScreen("Export", "Download your family data");
 export const HelpPlaceholderScreen = createUtilityScreen("Help", "Frequently asked questions");
