@@ -13,28 +13,24 @@ import {
 import { useNavigation, NavigationProp } from "@react-navigation/native";
 import { theme } from "../../theme";
 import { AppIcon } from "../ui/AppIcon";
+import { useFamily, FamilyMember } from "../../contexts/FamilyContext";
+import {
+  Settings,
+  FileText,
+  DollarSign,
+  Shield,
+  HelpCircle,
+  Check,
+  ChevronRight,
+  User,
+  X
+} from "lucide-react-native";
 
 interface AppSidebarProps {
   open: boolean;
   onClose: () => void;
   onNavigate?: (route: string) => void;
 }
-
-const profiles = [
-  { name: "Me", icon: "👤", badge: true },
-  { name: "Partner", icon: "💑", badge: false },
-  { name: "Kids", icon: "👶", badge: false },
-];
-
-const quickLinks = [
-  { label: "Documents", route: "Documents", icon: "📁" },
-  { label: "Expenses", route: "Expenses", icon: "💸" },
-];
-
-const bottomLinks = [
-  { label: "Privacy Policy", route: "Privacy", icon: "🛡️" },
-  { label: "Help & Support", route: "Help", icon: "❓" },
-];
 
 export const AppSidebar: React.FC<AppSidebarProps> = ({
   open,
@@ -48,6 +44,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
   const overlayOpacity = useRef(new Animated.Value(open ? 1 : 0)).current;
 
   const navigation = useNavigation<NavigationProp<Record<string, undefined>>>();
+  const { members, activeMember, setActiveMember, familyName } = useFamily();
 
   const handleNavigate = (route: string) => {
     if (onNavigate) {
@@ -56,6 +53,13 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
       navigation.navigate(route as never);
     }
     onClose();
+  };
+
+  const handleSwitchMember = (member: FamilyMember) => {
+    setActiveMember(member);
+    // Optional: Close sidebar on switch or keep open? ReactJS logic keeps it open usually until nav.
+    // We'll keep it open for quick switching, or maybe specific user preference? 
+    // Let's keep it open to show the switch happened (active state changes).
   };
 
   useEffect(() => {
@@ -93,6 +97,16 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
     return null;
   }
 
+  const shortcuts = [
+    { icon: FileText, label: 'Documents', route: 'Documents' },
+    { icon: DollarSign, label: 'Expenses', route: 'Expenses' },
+  ];
+
+  const bottomLinks = [
+    { icon: Shield, label: 'Privacy Policy', route: 'Privacy' },
+    { icon: HelpCircle, label: 'Help & Support', route: 'Help' },
+  ];
+
   return (
     <Modal visible={mounted} animationType="none" transparent onRequestClose={onClose}>
       <View style={styles.modalContainer}>
@@ -108,26 +122,33 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
             { width: sidebarWidth, transform: [{ translateX }] },
           ]}
         >
+          {/* Profile Section (Gradient Header) */}
           <View style={styles.headerGradient}>
             <Pressable onPress={onClose} style={styles.closeIcon}>
-              <AppIcon name="x" size={22} color="#f5f8ff" />
+              <X size={24} color="#f5f8ff" />
             </Pressable>
-            <View style={styles.profileSummary}>
+
+            <View style={styles.profileContent}>
               <View style={styles.avatar}>
-                <Text style={styles.avatarIcon}>👤</Text>
+                {activeMember ? (
+                  <Text style={styles.avatarIcon}>{activeMember.symbol}</Text>
+                ) : (
+                  <User size={32} color="#f5f8ff" />
+                )}
               </View>
-              <View style={styles.profileTextBlock}>
-                <Text style={styles.profileName}>Family Chores</Text>
-                <Text style={styles.profileRole}>Me</Text>
-              </View>
+              <Text style={styles.familyName}>{familyName}</Text>
+              <Text style={styles.memberName}>
+                {activeMember?.name || 'Select a profile'}
+              </Text>
+
+              <Pressable
+                style={styles.settingsButton}
+                onPress={() => handleNavigate("Theme")} // Assuming Theme or More is settings
+              >
+                <Settings size={14} color="#f5f8ff" style={{ marginRight: 6 }} />
+                <Text style={styles.settingsText}>Settings</Text>
+              </Pressable>
             </View>
-            <Pressable
-              style={[styles.settingsButton, styles.settingsContent]}
-              onPress={() => handleNavigate("Theme")}
-            >
-              <AppIcon source="⚙️" size={16} color="#cbd6ea" style={styles.settingsIcon} />
-              <Text style={styles.settingsText}>Settings</Text>
-            </Pressable>
           </View>
 
           <ScrollView
@@ -136,58 +157,69 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
             showsVerticalScrollIndicator
             nestedScrollEnabled
           >
-            <Text style={styles.sectionLabel}>Switch Profile</Text>
-            {profiles.map((profile) => (
-              <Pressable
-                key={profile.name}
-                style={[
-                  styles.profileRow,
-                  profile.badge && styles.profileRowActive,
-                ]}
-              >
-              <View style={styles.profileAvatar}>
-                <AppIcon source={profile.icon} size={28} />
+            {/* Switch Profile Section */}
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>Switch Profile</Text>
+              <View style={{ gap: 8 }}>
+                {members.map((member) => (
+                  <Pressable
+                    key={member.id}
+                    style={[
+                      styles.profileRow,
+                      member.isActive && styles.profileRowActive
+                    ]}
+                    onPress={() => handleSwitchMember(member)}
+                  >
+                    <View style={[styles.profileAvatar, { backgroundColor: member.isActive ? '#dbeafe' : '#f3f4f6' }]}>
+                      <Text style={{ fontSize: 20 }}>{member.symbol}</Text>
+                    </View>
+                    <Text style={[styles.profileText, member.isActive && styles.profileTextActive]}>
+                      {member.name}
+                    </Text>
+                    {member.isActive && <Check size={20} color={theme.colors.primary} />}
+                  </Pressable>
+                ))}
               </View>
-                <Text
-                  style={[
-                    styles.profileText,
-                    profile.badge && styles.profileTextActive,
-                  ]}
-                >
-                  {profile.name}
-                </Text>
-                {profile.badge && <Text style={styles.checkmark}>✓</Text>}
-              </Pressable>
-            ))}
+            </View>
 
-            <View style={styles.sectionDivider} />
+            <View style={styles.separator} />
 
-            <Text style={styles.sectionLabel}>Quick Access</Text>
-            {quickLinks.map((item) => (
-              <Pressable
-                key={item.route}
-                style={styles.linkRow}
-                onPress={() => handleNavigate(item.route)}
-              >
-                <AppIcon source={item.icon} size={20} style={styles.linkIcon} />
-                <Text style={styles.linkText}>{item.label}</Text>
-                <Text style={styles.linkChevron}>›</Text>
-              </Pressable>
-            ))}
+            {/* Quick Shortcuts */}
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>Quick Access</Text>
+              <View style={{ gap: 4 }}>
+                {shortcuts.map((item) => (
+                  <Pressable
+                    key={item.route}
+                    style={styles.linkRow}
+                    onPress={() => handleNavigate(item.route)}
+                  >
+                    <item.icon size={20} color={theme.colors.foreground} style={styles.linkIcon} />
+                    <Text style={styles.linkText}>{item.label}</Text>
+                    <ChevronRight size={16} color={theme.colors.mutedForeground} />
+                  </Pressable>
+                ))}
+              </View>
+            </View>
 
-            <View style={styles.sectionDivider} />
+            <View style={styles.separator} />
 
-            <Text style={styles.sectionLabel}>Help & Safety</Text>
-            {bottomLinks.map((item) => (
-              <Pressable
-                key={item.route}
-                style={styles.linkRow}
-                onPress={() => handleNavigate(item.route)}
-              >
-                <AppIcon source={item.icon} size={20} style={styles.linkIcon} />
-                <Text style={styles.linkText}>{item.label}</Text>
-              </Pressable>
-            ))}
+            {/* Bottom Links */}
+            <View style={styles.section}>
+              <View style={{ gap: 4 }}>
+                {bottomLinks.map((item) => (
+                  <Pressable
+                    key={item.route}
+                    style={styles.linkRow}
+                    onPress={() => handleNavigate(item.route)}
+                  >
+                    <item.icon size={20} color={theme.colors.mutedForeground} style={styles.linkIcon} />
+                    <Text style={[styles.linkText, { color: theme.colors.mutedForeground }]}>{item.label}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+
           </ScrollView>
         </Animated.View>
       </View>
@@ -202,163 +234,142 @@ const styles = StyleSheet.create({
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.35)",
+    backgroundColor: "rgba(0,0,0,0.4)",
   },
   overlayTouchable: {
     ...StyleSheet.absoluteFillObject,
   },
   sidebar: {
-    backgroundColor: theme.colors.card,
-    borderBottomRightRadius: 28,
-    borderTopRightRadius: 28,
+    backgroundColor: theme.colors.background,
+    borderTopRightRadius: 0, // ReactJS design typically doesn't round these much, or uses specific styles
     minHeight: "100%",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 10,
     overflow: "hidden",
   },
   headerGradient: {
-    backgroundColor: "#0f3a6d",
-    padding: theme.spacing.lg,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
+    backgroundColor: "#0f3a6d", // Approximate for gradient-primary
+    padding: 24,
+    paddingTop: 60, // status bar space
   },
   closeIcon: {
     position: "absolute",
-    right: theme.spacing.lg,
-    top: theme.spacing.lg,
-    padding: theme.spacing.sm,
+    right: 20,
+    top: 50,
+    padding: 8,
+    zIndex: 10,
   },
-  closeText: {
-    color: "#f5f8ff",
-    fontSize: 22,
-  },
-  profileSummary: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  profileTextBlock: {
-    marginLeft: theme.spacing.md,
+  profileContent: {
+    alignItems: 'flex-start',
   },
   avatar: {
-    width: 56,
-    height: 56,
+    width: 64,
+    height: 64, // w-16 h-16 approx (w-20 h-24 in ReactJS is bigger)
     borderRadius: 16,
-    backgroundColor: "#1c4d87",
+    backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: "center",
     justifyContent: "center",
+    marginBottom: 16,
   },
   avatarIcon: {
-    fontSize: 28,
+    fontSize: 32,
     color: "#f5f8ff",
   },
-  profileName: {
-    fontSize: 18,
+  familyName: {
+    fontSize: 20,
     fontWeight: "700",
     color: "#f5f8ff",
-    marginLeft: theme.spacing.md,
+    marginBottom: 4,
   },
-  profileRole: {
-    color: "rgba(255,255,255,0.7)",
-    marginTop: 4,
-    marginLeft: theme.spacing.md,
+  memberName: {
+    fontSize: 14,
+    color: "rgba(255,255,255,0.8)",
+    marginBottom: 16,
   },
   settingsButton: {
-    marginTop: theme.spacing.md,
-    alignSelf: "flex-start",
-    backgroundColor: "#0b2b57",
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.sm,
-    borderRadius: 999,
-  },
-  settingsContent: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  settingsIcon: {
-    marginRight: theme.spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 12,
   },
   settingsText: {
-    color: "#cbd6ea",
+    color: "#f5f8ff",
+    fontSize: 14,
     fontWeight: "600",
   },
   scrollArea: {
     flex: 1,
-    maxHeight: "100%",
   },
   content: {
-    padding: theme.spacing.lg,
-    paddingBottom: theme.spacing.xl,
-    flexGrow: 1,
+    paddingVertical: 16,
+  },
+  section: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
   },
   sectionLabel: {
     fontSize: 12,
-    textTransform: "uppercase",
+    fontWeight: '600',
     color: theme.colors.mutedForeground,
-    marginBottom: theme.spacing.sm,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 12,
   },
   profileRow: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#edf3ff",
-    borderRadius: 16,
-    paddingVertical: theme.spacing.sm,
-    paddingHorizontal: theme.spacing.md,
-    marginBottom: theme.spacing.sm,
-    justifyContent: "flex-start",
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: theme.colors.muted, // fallback
   },
   profileRowActive: {
+    backgroundColor: '#eff6ff', // primary-light
     borderWidth: 1,
     borderColor: theme.colors.primary,
-    backgroundColor: "#e9f0ff",
   },
   profileAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: "#e1ecff",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: theme.spacing.md,
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   profileText: {
     flex: 1,
     fontSize: 16,
+    marginLeft: 12,
+    fontWeight: '500',
     color: theme.colors.foreground,
-    marginLeft: theme.spacing.md,
   },
   profileTextActive: {
-    fontWeight: "700",
     color: theme.colors.primary,
+    fontWeight: '600',
   },
-  checkmark: {
-    color: theme.colors.primary,
-    fontSize: 18,
-    marginLeft: "auto",
-  },
-  sectionDivider: {
+  separator: {
     height: 1,
     backgroundColor: theme.colors.border,
-    marginVertical: theme.spacing.md,
+    marginVertical: 8,
+    marginHorizontal: 16,
   },
   linkRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: theme.spacing.sm,
-    justifyContent: "space-between",
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 12,
   },
   linkIcon: {
-    marginRight: theme.spacing.md,
+    marginRight: 12,
   },
   linkText: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 15,
+    fontWeight: '500',
     color: theme.colors.foreground,
-  },
-  linkChevron: {
-    color: theme.colors.mutedForeground,
-    fontSize: 18,
   },
 });
