@@ -1,602 +1,924 @@
-import React, { useState } from "react";
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Dimensions } from 'react-native';
+import { AppLayout } from '../components/layout/AppLayout';
+import { theme } from '../theme';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  Pressable,
-} from "react-native";
-import { AppLayout } from "../components/layout/AppLayout";
-import { theme } from "../theme";
-import { useSidebar } from "../contexts/SidebarContext";
+  Plus,
+  Wallet,
+  PiggyBank,
+  ArrowUpRight,
+  ArrowDownLeft,
+  Lightbulb,
+  ChevronRight,
+  Menu,
+  Target,
+  BarChart3,
+  PieChart as PieChartIcon
+} from 'lucide-react-native';
+import { Button } from '../components/ui/Button';
+import { AddExpenseModal, ExpenseData } from '../components/modals/AddExpenseModal';
+import { useSidebar } from '../contexts/SidebarContext';
+import Svg, { Path, Defs, LinearGradient, Stop, Circle, G, Rect, Text as SvgText } from 'react-native-svg';
 
-const tabs = ["Overview", "Breakdown", "Insights"];
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-const budgetTargets = [
-  { label: "Groceries", amount: 1250, limit: 10000, icon: "🛒", widthStyle: "progressGroceries" },
-  { label: "Utilities", amount: 2400, limit: 5000, icon: "⚡", widthStyle: "progressUtilities" },
-  { label: "Food", amount: 850, limit: 8000, icon: "🍽️", widthStyle: "progressFood" },
-  { label: "Transport", amount: 450, limit: 6000, icon: "🚗", widthStyle: "progressTransport" },
-  { label: "Entertainment", amount: 199, limit: 2000, icon: "🎬", widthStyle: "progressEntertainment" },
+const tabs = ['Overview', 'Breakdown', 'Insights'];
+
+const initialTransactions = [
+  { id: 1, name: 'Grocery Store', amount: 1250, date: 'Today', icon: '🛒', type: 'expense', category: 'groceries' },
+  { id: 2, name: 'Salary Credit', amount: 85000, date: 'Jan 1', icon: '💼', type: 'income', category: 'salary' },
+  { id: 3, name: 'Electricity Bill', amount: 2400, date: 'Jan 5', icon: '⚡', type: 'expense', category: 'utilities' },
+  { id: 4, name: 'Freelance Project', amount: 15000, date: 'Jan 8', icon: '💻', type: 'income', category: 'freelance' },
+  { id: 5, name: 'Restaurant', amount: 850, date: 'Jan 10', icon: '🍽️', type: 'expense', category: 'food' },
+  { id: 6, name: 'Uber Ride', amount: 450, date: 'Jan 12', icon: '🚗', type: 'expense', category: 'transport' },
+  { id: 7, name: 'Netflix', amount: 199, date: 'Jan 15', icon: '🎬', type: 'expense', category: 'entertainment' },
 ];
 
-const insights = [
-  "You overspent on groceries by 15% this month",
-  "Switch to LED bulbs to save ₹500/month",
-  "Great job! You're on track to save ₹15k this month",
-  "Your income increased 17% compared to last month",
+const budgets: Record<string, number> = {
+  groceries: 10000,
+  utilities: 5000,
+  transport: 6000,
+  food: 8000,
+  shopping: 5000,
+  healthcare: 3000,
+  entertainment: 2000,
+  education: 5000,
+};
+
+const monthlyData = [
+  { month: 'Aug', income: 75000, expenses: 42000 },
+  { month: 'Sep', income: 80000, expenses: 38000 },
+  { month: 'Oct', income: 78000, expenses: 45000 },
+  { month: 'Nov', income: 85000, expenses: 41000 },
+  { month: 'Dec', income: 92000, expenses: 52000 },
+  { month: 'Jan', income: 100000, expenses: 39770 },
 ];
 
-const categorySpending = [
-  { label: "Groceries", fillStyle: "barGreen", widthStyle: "barWidthGroceries" },
-  { label: "Utilities", fillStyle: "barYellow", widthStyle: "barWidthUtilities" },
-  { label: "Food", fillStyle: "barOrange", widthStyle: "barWidthFood" },
-  { label: "Transport", fillStyle: "barBlue", widthStyle: "barWidthTransport" },
-  { label: "Entertainment", fillStyle: "barPurple", widthStyle: "barWidthEntertainment" },
-];
+const categoryColors: Record<string, string> = {
+  groceries: '#10b981',
+  utilities: '#f59e0b',
+  transport: '#3b82f6',
+  food: '#f97316',
+  shopping: '#ec4899',
+  healthcare: '#ef4444',
+  entertainment: '#8b5cf6',
+  education: '#6366f1',
+  other: '#6b7280',
+};
 
-const legendItems = [
-  { label: "Income", style: "legendGreen" },
-  { label: "Expenses", style: "legendRed" },
+const categoryIcons: Record<string, string> = {
+  groceries: '🛒',
+  utilities: '⚡',
+  transport: '🚗',
+  food: '🍽️',
+  shopping: '🛍️',
+  healthcare: '🏥',
+  entertainment: '🎬',
+  education: '📚',
+  salary: '💼',
+  freelance: '💻',
+};
+
+const aiInsights = [
+  { icon: '📊', text: 'You overspent on groceries by 15% this month', type: 'warning' },
+  { icon: '💡', text: 'Switch to LED bulbs to save ₹500/month', type: 'tip' },
+  { icon: '🎯', text: "Great job! You're on track to save ₹15k this month", type: 'success' },
+  { icon: '📈', text: 'Your income increased 17% compared to last month', type: 'success' },
 ];
 
 export const ExpensesScreen: React.FC = () => {
-  const [activeTab, setActiveTab] = useState("Overview");
+  const [activeTab, setActiveTab] = useState('Overview');
+  const [transactions, setTransactions] = useState(initialTransactions);
+  const [expenseModalOpen, setExpenseModalOpen] = useState(false);
   const { openSidebar } = useSidebar();
 
-  return (
-    <>
-      <AppLayout>
-        <ScrollView contentContainerStyle={styles.container}>
-          <View style={styles.headerRow}>
-            <Pressable onPress={openSidebar} style={styles.menuButton}>
-              <Text style={styles.menuIcon}>☰</Text>
-            </Pressable>
-            <View>
-              <Text style={styles.title}>Family Finances</Text>
-              <Text style={styles.subtitle}>Track income, expenses & budgets</Text>
-            </View>
-            <Pressable style={styles.addButton}>
-              <Text style={styles.addIcon}>＋</Text>
-              <Text style={styles.addText}>Add</Text>
-            </Pressable>
-          </View>
+  // Calculate totals
+  const totalIncome = transactions
+    .filter(t => t.type === 'income')
+    .reduce((sum, t) => sum + t.amount, 0);
 
-          <View style={styles.tabRow}>
-            {tabs.map((tab) => {
-              const active = tab === activeTab;
+  const totalExpenses = transactions
+    .filter(t => t.type === 'expense')
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const balance = totalIncome - totalExpenses;
+  const savings = totalIncome - totalExpenses;
+  const savingsPercent = totalIncome > 0 ? (savings / totalIncome) * 100 : 0;
+
+  // Calculate spending by category
+  const categorySpending = transactions
+    .filter(t => t.type === 'expense')
+    .reduce((acc, t) => {
+      acc[t.category] = (acc[t.category] || 0) + t.amount;
+      return acc;
+    }, {} as Record<string, number>);
+
+  const categories = Object.entries(categorySpending).map(([name, amount]) => ({
+    name: name.charAt(0).toUpperCase() + name.slice(1),
+    id: name,
+    amount: `₹${amount.toLocaleString()}`,
+    numAmount: amount,
+    percent: totalExpenses > 0 ? Math.round((amount / totalExpenses) * 100) : 0,
+    icon: categoryIcons[name] || '📦',
+    color: categoryColors[name] || categoryColors.other,
+    budget: budgets[name] || 0,
+  })).sort((a, b) => b.numAmount - a.numAmount);
+
+  const handleAddExpense = (expense: ExpenseData) => {
+    const newTransaction = {
+      id: Date.now(),
+      name: expense.name,
+      amount: expense.amount,
+      date: expense.date === new Date().toISOString().split('T')[0] ? 'Today' : expense.date,
+      icon: categoryIcons[expense.category] || '📦',
+      type: expense.type,
+      category: expense.category,
+    };
+    // @ts-ignore - mismatch in simple types for demo
+    setTransactions(prev => [newTransaction, ...prev]);
+  };
+
+  // --- Chart Components ---
+
+  const AreaChart = () => {
+    const height = 180;
+    const width = SCREEN_WIDTH - 64; // padding accounting
+    const maxValue = 120000; // max Y value
+
+    const getY = (val: number) => height - (val / maxValue) * height;
+    const getX = (index: number) => (index / (monthlyData.length - 1)) * width;
+
+    const createPath = (key: 'income' | 'expenses') => {
+      const points = monthlyData.map((d, i) => `${getX(i)},${getY(d[key])}`);
+      return `M0,${height} L${points.join(' L')} L${width},${height} Z`; // Close path for area
+    };
+
+    const createLinePath = (key: 'income' | 'expenses') => {
+      const points = monthlyData.map((d, i) => `${getX(i)},${getY(d[key])}`);
+      return `M${points.join(' L')}`;
+    };
+
+    return (
+      <View style={{ height: 220, marginTop: 16 }}>
+        <Svg height={height + 30} width={width}>
+          <Defs>
+            <LinearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1">
+              <Stop offset="0" stopColor="#10b981" stopOpacity="0.3" />
+              <Stop offset="1" stopColor="#10b981" stopOpacity="0" />
+            </LinearGradient>
+            <LinearGradient id="expenseGradient" x1="0" y1="0" x2="0" y2="1">
+              <Stop offset="0" stopColor="#ef4444" stopOpacity="0.3" />
+              <Stop offset="1" stopColor="#ef4444" stopOpacity="0" />
+            </LinearGradient>
+          </Defs>
+
+          {/* Grid Lines */}
+          {[0.25, 0.5, 0.75, 1].map((t, i) => (
+            <Path
+              key={i}
+              d={`M0,${height * t} L${width},${height * t}`}
+              stroke={theme.colors.border}
+              strokeDasharray="4,4"
+            />
+          ))}
+
+          <Path d={createPath('income')} fill="url(#incomeGradient)" />
+          <Path d={createPath('expenses')} fill="url(#expenseGradient)" />
+
+          <Path d={createLinePath('income')} stroke="#10b981" strokeWidth={2} fill="none" />
+          <Path d={createLinePath('expenses')} stroke="#ef4444" strokeWidth={2} fill="none" />
+
+          {/* X Axis Labels */}
+          {monthlyData.map((d, i) => (
+            <SvgText
+              key={i}
+              x={getX(i)}
+              y={height + 20}
+              fontSize="10"
+              fill={theme.colors.mutedForeground}
+              textAnchor="middle"
+            >
+              {d.month}
+            </SvgText>
+          ))}
+        </Svg>
+
+        <View style={styles.legendContainer}>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendDot, { backgroundColor: '#10b981' }]} />
+            <Text style={styles.legendText}>Income</Text>
+          </View>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendDot, { backgroundColor: '#ef4444' }]} />
+            <Text style={styles.legendText}>Expenses</Text>
+          </View>
+        </View>
+      </View>
+    );
+  };
+
+  const DonutChart = () => {
+    const size = 180;
+    const radius = size / 2;
+    const strokeWidth = 35;
+    const center = size / 2;
+    const innerRadius = radius - strokeWidth;
+
+    let startAngle = 0;
+    const total = categories.reduce((sum, cat) => sum + cat.numAmount, 0);
+
+    return (
+      <View style={{ alignItems: 'center', marginVertical: 16 }}>
+        <Svg height={size} width={size}>
+          <G rotation="-90" origin={`${center}, ${center}`}>
+            {categories.map((cat, index) => {
+              const percentage = cat.numAmount / total;
+              const angle = percentage * 360;
+              const circleLength = 2 * Math.PI * (radius - strokeWidth / 2);
+              const strokeDashoffset = circleLength * (1 - percentage);
+
+              // Simple approximation for donut segments using Circle strokeDasharray
+              // Note: For perfect segments, Path usage is better, but Circle is easier for simple donut
+              // Changing to calculate path arc would be more robust but complex for this snippet
+
+              // Using a simpler approach: segments with gaps
+              const path = `
+                                M ${center} ${center}
+                                L ${center + Math.cos(startAngle * Math.PI / 180) * radius} ${center + Math.sin(startAngle * Math.PI / 180) * radius}
+                                A ${radius} ${radius} 0 ${angle > 180 ? 1 : 0} 1 ${center + Math.cos((startAngle + angle) * Math.PI / 180) * radius} ${center + Math.sin((startAngle + angle) * Math.PI / 180) * radius}
+                                Z
+                             `;
+
+              // Actually, let's use the standard SVG Arc calculation for cleanliness
+              const x1 = center + innerRadius * Math.cos(Math.PI * startAngle / 180);
+              const y1 = center + innerRadius * Math.sin(Math.PI * startAngle / 180);
+
+              const x2 = center + radius * Math.cos(Math.PI * startAngle / 180);
+              const y2 = center + radius * Math.sin(Math.PI * startAngle / 180);
+
+              const x3 = center + radius * Math.cos(Math.PI * (startAngle + angle) / 180);
+              const y3 = center + radius * Math.sin(Math.PI * (startAngle + angle) / 180);
+
+              const x4 = center + innerRadius * Math.cos(Math.PI * (startAngle + angle) / 180);
+              const y4 = center + innerRadius * Math.sin(Math.PI * (startAngle + angle) / 180);
+
+              // Correct Path for Donut Segment
+              const d = `
+                                M ${x1} ${y1}
+                                L ${x2} ${y2}
+                                A ${radius} ${radius} 0 ${angle > 180 ? 1 : 0} 1 ${x3} ${y3}
+                                L ${x4} ${y4}
+                                A ${innerRadius} ${innerRadius} 0 ${angle > 180 ? 1 : 0} 0 ${x1} ${y1}
+                                Z
+                             `;
+
+              const currentStartAngle = startAngle;
+              startAngle += angle;
+
               return (
-                <Pressable
-                  key={tab}
-                  style={[styles.tabPill, active && styles.tabPillActive]}
-                  onPress={() => setActiveTab(tab)}
-                >
-                  <Text style={[styles.tabText, active && styles.tabTextActive]}>{tab}</Text>
-                </Pressable>
+                <Path
+                  key={cat.id}
+                  d={d}
+                  fill={cat.color}
+                  stroke={theme.colors.card}
+                  strokeWidth={2}
+                />
               );
             })}
-          </View>
+          </G>
+          {/* Inner Circle Label (Optional) */}
+        </Svg>
+      </View>
+    );
+  };
 
-          <View style={styles.balanceCard}>
+  const HorizontalBarChart = () => {
+    const height = categories.length * 40;
+    const width = SCREEN_WIDTH - 64;
+    const maxVal = Math.max(...categories.map(c => c.numAmount));
+
+    return (
+      <View style={{ height, marginTop: 10 }}>
+        {categories.map((cat, i) => (
+          <View key={cat.id} style={styles.barChartRow}>
+            <View style={{ width: 80 }}>
+              <Text style={styles.barLabel} numberOfLines={1}>{cat.name}</Text>
+            </View>
+            <View style={styles.barTrack}>
+              <View
+                style={[
+                  styles.barFill,
+                  {
+                    width: `${(cat.numAmount / maxVal) * 100}%`,
+                    backgroundColor: cat.color
+                  }
+                ]}
+              />
+            </View>
+            <Text style={styles.barValue}>{cat.amount}</Text>
+          </View>
+        ))}
+      </View>
+    );
+  }
+
+  return (
+    <AppLayout>
+      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={openSidebar} style={styles.iconButton}>
+            <Menu size={24} color={theme.colors.foreground} />
+          </TouchableOpacity>
+          <View style={{ flex: 1, paddingHorizontal: 12 }}>
+            <Text style={styles.title}>Family Finances</Text>
+            <Text style={styles.subtitle}>Track income, expenses & budgets</Text>
+          </View>
+          <TouchableOpacity onPress={() => setExpenseModalOpen(true)} style={styles.addButton}>
+            <Plus size={16} color="#fff" />
+            <Text style={styles.addButtonText}>Add</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Tabs */}
+        <View style={styles.tabContainer}>
+          {tabs.map((tab) => (
+            <TouchableOpacity
+              key={tab}
+              onPress={() => setActiveTab(tab)}
+              style={[
+                styles.tabButton,
+                activeTab === tab && styles.activeTabButton
+              ]}
+            >
+              <Text style={[
+                styles.tabText,
+                activeTab === tab && styles.activeTabText
+              ]}>
+                {tab}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Balance Card */}
+        <View style={[styles.card, styles.balanceCard]}>
+          <View style={styles.cardHeader}>
             <Text style={styles.balanceLabel}>Current Balance</Text>
-            <Text style={styles.balanceValue}>₹94,851</Text>
-            <View style={styles.metricsRow}>
-              <View style={styles.metric}>
-                <Text style={styles.metricLabel}>Income</Text>
-                <Text style={styles.metricValue}>₹100,000</Text>
+            <Wallet size={24} color="rgba(255,255,255,0.6)" />
+          </View>
+          <Text style={styles.balanceAmount}>₹{balance.toLocaleString()}</Text>
+
+          <View style={styles.statsRow}>
+            <View style={styles.statBox}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                <ArrowDownLeft size={14} color="#6ee7b7" />
+                <Text style={styles.statLabel}> Income</Text>
               </View>
-              <View style={styles.metric}>
-                <Text style={styles.metricLabel}>Expenses</Text>
-                <Text style={styles.metricValue}>₹5,149</Text>
+              <Text style={styles.statValue}>₹{totalIncome.toLocaleString()}</Text>
+            </View>
+            <View style={styles.statBox}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                <ArrowUpRight size={14} color="#fca5a5" />
+                <Text style={styles.statLabel}> Expenses</Text>
               </View>
+              <Text style={styles.statValue}>₹{totalExpenses.toLocaleString()}</Text>
             </View>
           </View>
+        </View>
 
-          <View style={styles.savingsCard}>
-            <View style={styles.savingsLeft}>
-              <Text style={styles.sectionTitle}>Monthly Savings</Text>
-              <Text style={styles.savingsMeta}>94.9% of income</Text>
-            </View>
-            <Text style={styles.savingsValue}>₹94,851</Text>
-            <View style={styles.progressBar}>
-              <View style={[styles.progressFill, styles.progressFillActive]} />
-            </View>
-          </View>
-
-          <View style={styles.chartCard}>
-            <Text style={styles.sectionTitle}>6-Month Trend</Text>
-            <View style={styles.trendChart}>
-              <View style={styles.trendHeader}>
-                <Text style={styles.axisLabel}>₹100k</Text>
-                <Text style={styles.axisLabel}>₹75k</Text>
-                <Text style={styles.axisLabel}>₹50k</Text>
-                <Text style={styles.axisLabel}>₹25k</Text>
-                <Text style={styles.axisLabel}>₹0k</Text>
-              </View>
-              <View style={styles.trendPlot}>
-                <View style={[styles.trendLine, styles.incomeLine]} />
-                <View style={[styles.trendLine, styles.expenseLine]} />
-                <View style={styles.monthRow}>
-                  {["Aug", "Sep", "Oct", "Nov", "Dec", "Jan"].map((month) => (
-                    <Text key={month} style={styles.monthLabel}>
-                      {month}
-                    </Text>
-                  ))}
+        {activeTab === 'Overview' && (
+          <View>
+            {/* Savings Goal */}
+            <View style={[styles.card, styles.savingsCard]}>
+              <View style={styles.savingsContent}>
+                <View style={styles.savingsIcon}>
+                  <PiggyBank size={24} color={theme.colors.success || '#22c55e'} />
                 </View>
+                <View style={{ flex: 1, paddingHorizontal: 12 }}>
+                  <Text style={styles.cardTitle}>Monthly Savings</Text>
+                  <Text style={styles.cardSubtitle}>{savingsPercent.toFixed(1)}% of income</Text>
+                </View>
+                <Text style={[styles.amountText, { color: theme.colors.success || '#22c55e' }]}>
+                  ₹{savings.toLocaleString()}
+                </Text>
               </View>
-              <View style={styles.legendRow}>
-                {legendItems.map((legend) => (
-                  <View key={legend.label} style={styles.legendItem}>
-                    <View style={[styles.legendDot, styles[legend.style]]} />
-                    <Text>{legend.label}</Text>
+              <View style={styles.progressBarBg}>
+                <View style={[styles.progressBarFill, { width: `${Math.min(savingsPercent * 2, 100)}%`, backgroundColor: theme.colors.success || '#22c55e' }]} />
+              </View>
+            </View>
+
+            {/* Monthly Trend Chart */}
+            <View style={styles.card}>
+              <View style={styles.chartHeader}>
+                <BarChart3 size={20} color={theme.colors.primary} />
+                <Text style={styles.chartTitle}>6-Month Trend</Text>
+              </View>
+              <AreaChart />
+            </View>
+
+            {/* Recent Transactions */}
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Recent Transactions</Text>
+              <TouchableOpacity>
+                <Text style={styles.seeAllText}>See all</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View>
+              {transactions.slice(0, 5).map((tx) => (
+                <View key={tx.id} style={styles.transactionCard}>
+                  <View style={styles.transactionIconBg}>
+                    <Text style={{ fontSize: 20 }}>{tx.icon}</Text>
+                  </View>
+                  <View style={{ flex: 1, paddingHorizontal: 12 }}>
+                    <Text style={styles.txName}>{tx.name}</Text>
+                    <Text style={styles.txDate}>{tx.date}</Text>
+                  </View>
+                  <Text style={[
+                    styles.txAmount,
+                    tx.type === 'income' ? styles.textSuccess : styles.textDestructive
+                  ]}>
+                    {tx.type === 'income' ? '+' : '-'}₹{tx.amount.toLocaleString()}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {activeTab === 'Breakdown' && (
+          <View>
+            {/* Pie Chart */}
+            <View style={styles.card}>
+              <View style={styles.chartHeader}>
+                <PieChartIcon size={20} color={theme.colors.primary} />
+                <Text style={styles.chartTitle}>Spending Breakdown</Text>
+              </View>
+              <DonutChart />
+            </View>
+
+            {/* Budget vs Actual */}
+            <View style={styles.card}>
+              <View style={styles.chartHeader}>
+                <Target size={20} color={theme.colors.primary} />
+                <Text style={styles.chartTitle}>Budget vs Actual</Text>
+              </View>
+
+              <View style={{ gap: 16 }}>
+                {categories.map((cat) => {
+                  const percentUsed = cat.budget > 0 ? (cat.numAmount / cat.budget) * 100 : 0;
+                  const isOverBudget = percentUsed > 100;
+
+                  return (
+                    <View key={cat.id}>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                          <Text style={{ marginRight: 8, fontSize: 16 }}>{cat.icon}</Text>
+                          <Text style={styles.catName}>{cat.name}</Text>
+                        </View>
+                        <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
+                          <Text style={[styles.catAmount, isOverBudget && styles.textDestructive]}>
+                            {cat.amount}
+                          </Text>
+                          {cat.budget > 0 && <Text style={styles.catBudget}> / ₹{cat.budget.toLocaleString()}</Text>}
+                        </View>
+                      </View>
+                      <View style={styles.progressBarBg}>
+                        <View
+                          style={[
+                            styles.progressBarFill,
+                            {
+                              width: `${Math.min(percentUsed, 100)}%`,
+                              backgroundColor: isOverBudget ? theme.colors.destructive : theme.colors.primary
+                            }
+                          ]}
+                        />
+                      </View>
+                      {isOverBudget && (
+                        <Text style={styles.overBudgetText}>
+                          ⚠️ Over budget by ₹{(cat.numAmount - cat.budget).toLocaleString()}
+                        </Text>
+                      )}
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+          </View>
+        )}
+
+        {activeTab === 'Insights' && (
+          <View>
+            {/* AI Insights */}
+            <View style={styles.card}>
+              <View style={styles.chartHeader}>
+                <Lightbulb size={20} color="#f59e0b" />
+                <Text style={styles.chartTitle}>AI Insights</Text>
+              </View>
+              <View style={{ gap: 8 }}>
+                {aiInsights.map((insight, i) => (
+                  <View
+                    key={i}
+                    style={[
+                      styles.insightCard,
+                      insight.type === 'warning' ? { backgroundColor: 'rgba(245, 158, 11, 0.1)' } :
+                        insight.type === 'success' ? { backgroundColor: 'rgba(34, 197, 94, 0.1)' } :
+                          { backgroundColor: theme.colors.muted }
+                    ]}
+                  >
+                    <Text style={{ fontSize: 20 }}>{insight.icon}</Text>
+                    <Text style={styles.insightText}>{insight.text}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            {/* Spending Bar Chart */}
+            <View style={styles.card}>
+              <View style={styles.chartHeader}>
+                <BarChart3 size={20} color={theme.colors.primary} />
+                <Text style={styles.chartTitle}>Category Spending</Text>
+              </View>
+              <HorizontalBarChart />
+            </View>
+
+            {/* Tips Card */}
+            <View style={[styles.card, styles.tipsCard]}>
+              <Text style={styles.tipsTitle}>💡 Money Saving Tips</Text>
+              <View style={{ gap: 10 }}>
+                {[
+                  'Set up automatic transfers to savings on payday',
+                  'Review subscriptions monthly and cancel unused ones',
+                  'Use the 24-hour rule before making impulse purchases',
+                  'Plan meals weekly to reduce food waste and dining out'
+                ].map((tip, i) => (
+                  <View key={i} style={{ flexDirection: 'row', gap: 8 }}>
+                    <Text style={{ color: theme.colors.success || '#22c55e' }}>✓</Text>
+                    <Text style={styles.tipText}>{tip}</Text>
                   </View>
                 ))}
               </View>
             </View>
           </View>
+        )}
 
-          <View style={styles.breakdownCard}>
-            <Text style={styles.sectionTitle}>Budget vs Actual</Text>
-            {budgetTargets.map((item) => (
-              <View key={item.label} style={styles.budgetRow}>
-                <View style={styles.budgetLabel}>
-                  <Text style={styles.budgetIcon}>{item.icon}</Text>
-                  <Text style={styles.budgetText}>{item.label}</Text>
-                </View>
-                <View style={styles.budgetAmount}>
-                  <Text style={styles.budgetValue}>₹{item.amount.toLocaleString()}</Text>
-                  <Text style={styles.budgetLimit}>/ ₹{item.limit.toLocaleString()}</Text>
-                </View>
-                <View style={styles.barBackground}>
-                  <View style={[styles.barFill, styles[item.widthStyle]]} />
-                </View>
-              </View>
-            ))}
-          </View>
+        {/* Spacer for FAB */}
+        <View style={{ height: 80 }} />
+      </ScrollView>
 
-          <View style={styles.insightsCard}>
-            <Text style={styles.sectionTitle}>AI Insights</Text>
-            {insights.map((note) => (
-              <View key={note} style={styles.insightRow}>
-                <Text style={styles.insightText}>{note}</Text>
-              </View>
-            ))}
-          </View>
+      {/* Floating Action Button */}
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => setExpenseModalOpen(true)}
+      >
+        <Plus size={32} color="#fff" />
+      </TouchableOpacity>
 
-          <View style={styles.categoryCard}>
-            <Text style={styles.sectionTitle}>Category Spending</Text>
-            <View style={styles.categoryChart}>
-              {categorySpending.map((cat) => (
-                <View key={cat.label} style={styles.categoryRow}>
-                  <Text style={styles.budgetText}>{cat.label}</Text>
-                  <View style={styles.categoryBarBackground}>
-                    <View style={[styles.categoryBarFill, styles[cat.fillStyle], styles[cat.widthStyle]]} />
-                  </View>
-                </View>
-              ))}
-            </View>
-          </View>
+      <AddExpenseModal
+        visible={expenseModalOpen}
+        onClose={() => setExpenseModalOpen(false)}
+        onAdd={handleAddExpense}
+        budgets={budgets}
+        currentSpending={categorySpending}
+      />
 
-          <View style={styles.tipsCard}>
-            <Text style={styles.sectionTitle}>Money Saving Tips</Text>
-            <View style={styles.tipRow}>
-              <Text>✔️</Text>
-              <Text style={styles.tipText}>Set up automatic transfers to savings on payday</Text>
-            </View>
-            <View style={styles.tipRow}>
-              <Text>✔️</Text>
-              <Text style={styles.tipText}>Review subscriptions monthly and cancel unused ones</Text>
-            </View>
-            <View style={styles.tipRow}>
-              <Text>✔️</Text>
-              <Text style={styles.tipText}>Use the 24-hour rule before making impulse purchases</Text>
-            </View>
-            <View style={styles.tipRow}>
-              <Text>✔️</Text>
-              <Text style={styles.tipText}>Plan meals weekly to reduce food waste and dining out</Text>
-            </View>
-          </View>
-        </ScrollView>
-      </AppLayout>
-    </>
+    </AppLayout>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    padding: theme.spacing.lg,
-    paddingBottom: 120,
-    backgroundColor: theme.colors.background,
+    padding: 16,
   },
-  headerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: theme.spacing.md,
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    justifyContent: 'space-between',
   },
-  menuButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
+  iconButton: {
+    padding: 8,
     backgroundColor: theme.colors.card,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#0a1a3c",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  menuIcon: {
-    fontSize: 20,
+    borderRadius: 12,
   },
   title: {
-    fontSize: 28,
-    fontWeight: "700",
+    fontSize: 20,
+    fontWeight: '700',
     color: theme.colors.foreground,
-    marginLeft: theme.spacing.md,
   },
   subtitle: {
+    fontSize: 12,
     color: theme.colors.mutedForeground,
-    fontSize: 14,
   },
   addButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginLeft: "auto",
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: theme.colors.primary,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    borderRadius: 18,
-    justifyContent: "center",
-    gap: theme.spacing.xs,
-    shadowColor: "#0a1a3c",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 5,
-  },
-  addIcon: {
-    fontSize: 20,
-    color: theme.colors.primaryForeground,
-  },
-  addText: {
-    color: theme.colors.primaryForeground,
-    fontWeight: "700",
-  },
-  tabRow: {
-    flexDirection: "row",
-    backgroundColor: theme.colors.muted,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderRadius: 20,
+    gap: 4,
+  },
+  addButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    backgroundColor: theme.colors.muted,
     padding: 4,
-    marginBottom: theme.spacing.md,
+    borderRadius: 12,
+    marginBottom: 16,
   },
-  tabPill: {
+  tabButton: {
     flex: 1,
-    alignItems: "center",
-    borderRadius: 16,
-    paddingVertical: theme.spacing.md,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderRadius: 8,
   },
-  tabPillActive: {
+  activeTabButton: {
     backgroundColor: theme.colors.card,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   tabText: {
-    fontWeight: "600",
+    fontSize: 14,
+    fontWeight: '600',
     color: theme.colors.mutedForeground,
   },
-  tabTextActive: {
+  activeTabText: {
     color: theme.colors.foreground,
+  },
+  card: {
+    backgroundColor: theme.colors.card,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   balanceCard: {
-    borderRadius: 24,
-    padding: theme.spacing.lg,
-    backgroundColor: "#0c2b5f",
-    marginBottom: theme.spacing.md,
-    shadowColor: "#0a1a3c",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 6,
+    backgroundColor: '#1e3a8a', // Dark blue specific to this design
+    borderWidth: 0,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
   },
   balanceLabel: {
-    color: "#b9cee7",
-    marginBottom: theme.spacing.xs,
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 14,
   },
-  balanceValue: {
-    color: theme.colors.primaryForeground,
+  balanceAmount: {
+    color: '#fff',
     fontSize: 32,
-    fontWeight: "700",
+    fontWeight: '700',
+    marginBottom: 20,
   },
-  metricsRow: {
-    flexDirection: "row",
-    marginTop: theme.spacing.md,
-    gap: theme.spacing.md,
+  statsRow: {
+    flexDirection: 'row',
+    gap: 12,
   },
-  metric: {
+  statBox: {
     flex: 1,
-    backgroundColor: "rgba(255,255,255,0.15)",
-    borderRadius: 16,
-    padding: theme.spacing.md,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 12,
+    padding: 12,
   },
-  metricLabel: {
-    color: "#c8d6f0",
+  statLabel: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 12,
   },
-  metricValue: {
-    color: theme.colors.primaryForeground,
-    fontSize: 20,
-    fontWeight: "700",
+  statValue: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '700',
   },
   savingsCard: {
-    backgroundColor: theme.colors.card,
-    borderRadius: 24,
-    padding: theme.spacing.md,
-    marginBottom: theme.spacing.md,
-    shadowColor: "#0a1a3c",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 3,
+    backgroundColor: '#ecfdf5', // Light emerald bg
+    borderWidth: 0,
   },
-  savingsLeft: {
-    marginBottom: theme.spacing.sm,
+  savingsContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    marginBottom: theme.spacing.xs,
-    color: theme.colors.foreground,
-  },
-  savingsMeta: {
-    color: theme.colors.mutedForeground,
-  },
-  savingsValue: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#299b4c",
-    marginBottom: theme.spacing.sm,
-  },
-  progressBar: {
-    width: "100%",
-    height: 10,
-    backgroundColor: theme.colors.muted,
-    borderRadius: 6,
-    overflow: "hidden",
-  },
-  progressFill: {
-    height: "100%",
-    backgroundColor: "#299b4c",
-  },
-  chartCard: {
-    backgroundColor: theme.colors.card,
-    borderRadius: 24,
-    padding: theme.spacing.md,
-    marginBottom: theme.spacing.md,
-    shadowColor: "#0a1a3c",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 3,
-  },
-  trendChart: {
-    marginTop: theme.spacing.sm,
-  },
-  trendHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  axisLabel: {
-    fontSize: 10,
-    color: theme.colors.mutedForeground,
-  },
-  trendPlot: {
-    height: 160,
-    marginTop: theme.spacing.sm,
-    backgroundColor: "#f5f8ff",
+  savingsIcon: {
+    width: 48,
+    height: 48,
     borderRadius: 16,
-    padding: theme.spacing.sm,
-    position: "relative",
-    overflow: "hidden",
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  trendLine: {
-    position: "absolute",
-    left: 20,
-    right: 20,
-    height: 2,
-    borderRadius: 4,
-  },
-  incomeLine: {
-    top: 30,
-    backgroundColor: "#34a853",
-  },
-  expenseLine: {
-    top: 100,
-    backgroundColor: "#ea4335",
-  },
-  monthRow: {
-    position: "absolute",
-    bottom: theme.spacing.sm,
-    width: "100%",
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  monthLabel: {
-    color: theme.colors.mutedForeground,
-    fontSize: 12,
-  },
-  legendRow: {
-    flexDirection: "row",
-    marginTop: theme.spacing.sm,
-    justifyContent: "flex-start",
-    gap: theme.spacing.lg,
-  },
-  legendItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing.xs,
-  },
-  legendDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  legendGreen: {
-    backgroundColor: "#34a853",
-  },
-  legendRed: {
-    backgroundColor: "#ea4335",
-  },
-  breakdownCard: {
-    backgroundColor: theme.colors.card,
-    borderRadius: 24,
-    padding: theme.spacing.md,
-    marginBottom: theme.spacing.md,
-    shadowColor: "#0a1a3c",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 3,
-  },
-  budgetRow: {
-    marginBottom: theme.spacing.sm,
-  },
-  budgetLabel: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: theme.spacing.xs,
-  },
-  budgetIcon: {
-    marginRight: theme.spacing.sm,
-    fontSize: 18,
-  },
-  budgetText: {
+  cardTitle: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: '700',
     color: theme.colors.foreground,
   },
-  budgetAmount: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    justifyContent: "space-between",
-  },
-  budgetValue: {
-    fontWeight: "700",
-    color: theme.colors.foreground,
-  },
-  budgetLimit: {
-    fontSize: 12,
+  cardSubtitle: {
+    fontSize: 13,
     color: theme.colors.mutedForeground,
-    marginLeft: theme.spacing.xs,
   },
-  barBackground: {
+  amountText: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  progressBarBg: {
     height: 8,
     backgroundColor: theme.colors.muted,
     borderRadius: 4,
-    marginTop: theme.spacing.xs,
-    overflow: "hidden",
+    overflow: 'hidden',
   },
-  barFill: {
-    height: "100%",
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 4,
   },
-  progressFillActive: {
-    width: "94%",
-    backgroundColor: theme.colors.primary,
+  chartHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
   },
-  progressGroceries: {
-    width: "13%",
+  chartTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: theme.colors.foreground,
   },
-  progressUtilities: {
-    width: "48%",
+  legendContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 20,
+    marginTop: 10,
   },
-  progressFood: {
-    width: "11%",
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
-  progressTransport: {
-    width: "8%",
+  legendDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
-  progressEntertainment: {
-    width: "10%",
+  legendText: {
+    fontSize: 12,
+    color: theme.colors.mutedForeground,
   },
-  barGreen: {
-    backgroundColor: "#34a853",
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
   },
-  barYellow: {
-    backgroundColor: "#fbbc05",
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: theme.colors.foreground,
   },
-  barOrange: {
-    backgroundColor: "#ff7b00",
+  seeAllText: {
+    color: theme.colors.primary,
+    fontSize: 14,
+    fontWeight: '600',
   },
-  barBlue: {
-    backgroundColor: "#4285f4",
-  },
-  barPurple: {
-    backgroundColor: "#8a64e5",
-  },
-  insightsCard: {
+  transactionCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: theme.colors.card,
-    borderRadius: 24,
-    padding: theme.spacing.md,
-    marginBottom: theme.spacing.md,
-    shadowColor: "#0a1a3c",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 3,
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: 'transparent', // Can add border if needed
   },
-  insightRow: {
-    backgroundColor: "#f0f4ff",
+  transactionIconBg: {
+    width: 48,
+    height: 48,
+    backgroundColor: theme.colors.muted,
     borderRadius: 16,
-    padding: theme.spacing.sm,
-    marginBottom: theme.spacing.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  txName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: theme.colors.foreground,
+  },
+  txDate: {
+    fontSize: 12,
+    color: theme.colors.mutedForeground,
+  },
+  txAmount: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  textSuccess: {
+    color: theme.colors.success || '#22c55e',
+  },
+  textDestructive: {
+    color: theme.colors.destructive,
+  },
+  catName: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: theme.colors.foreground,
+  },
+  catAmount: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.foreground,
+  },
+  catBudget: {
+    fontSize: 12,
+    color: theme.colors.mutedForeground,
+  },
+  overBudgetText: {
+    fontSize: 12,
+    color: theme.colors.destructive,
+    marginTop: 4,
+    fontWeight: '500',
+  },
+  insightCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 12,
+    gap: 12,
   },
   insightText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '500',
     color: theme.colors.foreground,
   },
-  categoryCard: {
-    backgroundColor: theme.colors.card,
-    borderRadius: 24,
-    padding: theme.spacing.md,
-    marginBottom: theme.spacing.md,
-    shadowColor: "#0a1a3c",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 3,
+  barChartRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 8,
   },
-  categoryRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: theme.spacing.sm,
+  barLabel: {
+    fontSize: 12,
+    color: theme.colors.mutedForeground,
+    textAlign: 'right',
   },
-  categoryChart: {
-    marginTop: theme.spacing.md,
-  },
-  categoryBarBackground: {
+  barTrack: {
     flex: 1,
-    height: 10,
-    backgroundColor: "#e5e9f2",
-    borderRadius: 5,
+    height: 24,
+    justifyContent: 'center',
   },
-  categoryBarFill: {
-    height: "100%",
-    borderRadius: 5,
+  barFill: {
+    height: 24,
+    borderTopRightRadius: 6,
+    borderBottomRightRadius: 6,
+  },
+  barValue: {
+    fontSize: 12,
+    fontWeight: '600',
+    width: 60,
+    textAlign: 'right',
   },
   tipsCard: {
-    backgroundColor: theme.colors.card,
-    borderRadius: 24,
-    padding: theme.spacing.md,
-    marginBottom: theme.spacing.md,
-    shadowColor: "#0a1a3c",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 3,
+    backgroundColor: 'rgba(59, 130, 246, 0.05)',
+    borderColor: 'rgba(59, 130, 246, 0.2)',
   },
-  tipRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: theme.spacing.sm,
-    marginBottom: theme.spacing.xs,
+  tipsTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: theme.colors.foreground,
+    marginBottom: 12,
   },
   tipText: {
-    color: theme.colors.foreground,
+    fontSize: 13,
+    color: theme.colors.mutedForeground,
+    flex: 1,
+  },
+  fab: {
+    position: 'absolute',
+    bottom: 24,
+    right: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: theme.colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
 });

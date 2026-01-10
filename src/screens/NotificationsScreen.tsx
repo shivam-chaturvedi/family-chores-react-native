@@ -5,347 +5,551 @@ import {
   StyleSheet,
   ScrollView,
   Pressable,
+  Switch,
+  TextInput,
 } from "react-native";
 import { AppLayout } from "../components/layout/AppLayout";
 import { theme } from "../theme";
 import { useSidebar } from "../contexts/SidebarContext";
+import {
+  Calendar,
+  CheckSquare,
+  ShoppingCart,
+  Bell,
+  ChefHat,
+  Smartphone,
+  Mail,
+  Volume2,
+  ChevronLeft,
+  BellOff,
+  Clock,
+  ArrowLeft,
+  Check,
+} from "lucide-react-native";
 
 const notificationTypes = [
-  { label: "Calendar Events", description: "Get notified about upcoming events", icon: "📅" },
-  { label: "Task Reminders", description: "Due dates and assignments", icon: "✅" },
-  { label: "Shopping List Updates", description: "When items are added or checked", icon: "🛒" },
-  { label: "Document Alerts", description: "Warranty and expiry reminders", icon: "🔔" },
-  { label: "Meal Prep Reminders", description: "Time to start cooking", icon: "🍳" },
-];
-
-const deliveryMethods = [
-  { label: "Push Notifications", icon: "📱" },
-  { label: "Email Notifications", icon: "✉️" },
-  { label: "Sound", icon: "🔊" },
+  { id: 'events', label: "Calendar Events", description: "Get notified about upcoming events", icon: Calendar },
+  { id: 'tasks', label: "Task Reminders", description: "Due dates and assignments", icon: CheckSquare },
+  { id: 'grocery', label: "Shopping List Updates", description: "When items are added or checked", icon: ShoppingCart },
+  { id: 'vault', label: "Document Alerts", description: "Warranty and expiry reminders", icon: Bell },
+  { id: 'mealprep', label: "Meal Prep Reminders", description: "Time to start cooking", icon: ChefHat },
 ];
 
 export const NotificationsScreen: React.FC = () => {
   const { openSidebar } = useSidebar();
+
+  // Dropdown options
+  const calendarOptions = ["5 min before", "15 min before", "30 min before", "1 hour before", "1 day before"];
+  const mealPrepOptions = ["30 min before", "1 hour before", "1.5 hours before", "2 hours before"];
+
+  // State
   const [enableNotifications, setEnableNotifications] = useState(true);
-  const [calendarToggle, setCalendarToggle] = useState(true);
-  const [mealToggle, setMealToggle] = useState(true);
-  const [notificationState, setNotificationState] = useState<Record<string, boolean>>(() =>
-    notificationTypes.reduce((acc, curr) => ({ ...acc, [curr.label]: true }), {})
+
+  // Reminder Toggles
+  const [calendarEnabled, setCalendarEnabled] = useState(true);
+  const [mealPrepEnabled, setMealPrepEnabled] = useState(true);
+
+  // Custom Dropdown State
+  const [calendarDropdownOpen, setCalendarDropdownOpen] = useState(false);
+  const [mealDropdownOpen, setMealDropdownOpen] = useState(false);
+  const [selectedCalendarTime, setSelectedCalendarTime] = useState("30 min before");
+  const [selectedMealTime, setSelectedMealTime] = useState("1 hour before");
+
+  // Notification Types State
+  const [typesState, setTypesState] = useState<Record<string, boolean>>(
+    notificationTypes.reduce((acc, curr) => ({ ...acc, [curr.id]: true }), {})
   );
-  const [quietHours, setQuietHours] = useState(true);
-  const [deliveryState, setDeliveryState] = useState<Record<string, boolean>>(() =>
-    deliveryMethods.reduce((acc, curr) => ({ ...acc, [curr.label]: true }), {})
+
+  // Quiet Hours
+  const [quietHoursEnabled, setQuietHoursEnabled] = useState(true);
+  const [quietStart, setQuietStart] = useState("22:00");
+  const [quietEnd, setQuietEnd] = useState("07:00");
+
+  // Delivery Methods
+  const [pushEnabled, setPushEnabled] = useState(true);
+  const [emailEnabled, setEmailEnabled] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+
+  const toggleType = (id: string) => {
+    setTypesState(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const DropdownMenu = ({
+    options,
+    selected,
+    onSelect,
+    onClose
+  }: {
+    options: string[],
+    selected: string,
+    onSelect: (val: string) => void,
+    onClose: () => void
+  }) => (
+    <Pressable style={styles.dropdownOverlay} onPress={onClose}>
+      <View style={styles.dropdownContainer}>
+        {options.map((option, index) => (
+          <Pressable
+            key={option}
+            style={[
+              styles.dropdownItem,
+              selected === option && styles.dropdownItemSelected,
+              index === options.length - 1 && { borderBottomWidth: 0 }
+            ]}
+            onPress={() => {
+              onSelect(option);
+              onClose();
+            }}
+          >
+            {selected === option && (
+              <Check size={16} color="#fff" style={{ marginRight: 8 }} />
+            )}
+            <Text style={[
+              styles.dropdownText,
+              selected === option && styles.dropdownTextSelected,
+              selected !== option && { marginLeft: 24 } // indent if no check
+            ]}>
+              {option}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+    </Pressable>
   );
-  const calendarReminder = "30 min before";
-  const mealReminder = "1 hour before";
 
   return (
-    <>
-      <AppLayout>
-        <ScrollView contentContainerStyle={styles.container}>
-          <View style={styles.headerRow}>
-          <Pressable onPress={openSidebar} style={styles.backButton}>
-              <Text style={styles.backIcon}>‹</Text>
-            </Pressable>
-            <View>
-              <Text style={styles.title}>Notifications</Text>
-            </View>
-          </View>
+    <AppLayout>
+      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Pressable onPress={openSidebar} style={styles.iconButton}>
+            <ChevronLeft size={24} color={theme.colors.foreground} />
+          </Pressable>
+          <Text style={styles.headerTitle}>Notifications</Text>
+        </View>
 
-          <View style={styles.card}>
-            <View style={styles.cardLead}>
-              <View style={styles.iconBubble}>
-                <Text style={styles.iconText}>🔔</Text>
+        {/* Enable Notifications Main Card */}
+        <View style={styles.card}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
+              <View style={styles.mainIconBg}>
+                <Bell size={24} color={theme.colors.primary} />
               </View>
-              <View>
+              <View style={{ flex: 1 }}>
                 <Text style={styles.cardTitle}>Enable Notifications</Text>
                 <Text style={styles.cardSubtitle}>Get reminders for events and meals</Text>
               </View>
             </View>
             <Pressable
-              style={[styles.enableButton, enableNotifications ? styles.enableActive : null]}
-              onPress={() => setEnableNotifications((prev) => !prev)}
+              onPress={() => setEnableNotifications(!enableNotifications)}
+              style={[styles.enableBtn, enableNotifications && styles.enableBtnActive]}
             >
-              <Text style={styles.enableText}>{enableNotifications ? "Enabled" : "Enable"}</Text>
+              <Text style={[styles.enableBtnText, enableNotifications && { color: '#fff' }]}>
+                {enableNotifications ? 'Enabled' : 'Enable'}
+              </Text>
             </Pressable>
           </View>
+        </View>
 
-          <View style={styles.card}>
-            <View style={styles.cardLead}>
-              <View style={styles.iconBubble}>
-                <Text style={styles.iconText}>📆</Text>
+        {/* Specific Reminders */}
+        <View style={[styles.card, { zIndex: 10 }]}>
+          {/* Calendar */}
+          <View style={{ marginBottom: 20, zIndex: calendarDropdownOpen ? 20 : 1 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+              <Calendar size={20} color={theme.colors.foreground} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.itemTitle}>Calendar Event Reminders</Text>
+                <Text style={styles.itemSubtitle}>Get notified before events</Text>
+              </View>
+              <Switch
+                value={calendarEnabled}
+                onValueChange={setCalendarEnabled}
+                trackColor={{ false: theme.colors.muted, true: theme.colors.primary }}
+              />
+            </View>
+            <View style={styles.settingsRow}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Clock size={16} color={theme.colors.mutedForeground} />
+                <Text style={styles.label}>Remind me</Text>
               </View>
               <View>
-                <Text style={styles.cardTitle}>Calendar Event Reminders</Text>
-                <Text style={styles.cardSubtitle}>Get notified before events</Text>
-              </View>
-            </View>
-            <View style={styles.toggleRow}>
-              <Text style={styles.label}>Remind me</Text>
-              <Pressable style={[styles.toggleButton, calendarToggle && styles.toggleActive]} onPress={() => setCalendarToggle((prev) => !prev)}>
-                <View style={[styles.toggleCircle, calendarToggle && styles.toggleCircleActive]} />
-              </Pressable>
-            </View>
-            <Pressable style={styles.selectBox}>
-              <Text style={styles.selectLabel}>{calendarReminder}</Text>
-            </Pressable>
-          </View>
-
-          <View style={styles.card}>
-            <View style={styles.cardLead}>
-              <View style={styles.iconBubble}>
-                <Text style={styles.iconText}>🍳</Text>
-              </View>
-              <View>
-                <Text style={styles.cardTitle}>Meal Prep Reminders</Text>
-                <Text style={styles.cardSubtitle}>Start cooking on time</Text>
-              </View>
-            </View>
-            <View style={styles.toggleRow}>
-              <Text style={styles.label}>Start prep</Text>
-              <Pressable style={[styles.toggleButton, mealToggle && styles.toggleActive]} onPress={() => setMealToggle((prev) => !prev)}>
-                <View style={[styles.toggleCircle, mealToggle && styles.toggleCircleActive]} />
-              </Pressable>
-            </View>
-            <Pressable style={styles.selectBox}>
-              <Text style={styles.selectLabel}>{mealReminder}</Text>
-            </Pressable>
-          </View>
-
-          <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Notification Types</Text>
-            {notificationTypes.map((item) => (
-              <View key={item.label} style={styles.notificationRow}>
-                <View style={styles.iconBubble}>
-                  <Text style={styles.iconText}>{item.icon}</Text>
-                </View>
-                <View style={styles.notificationText}>
-                  <Text style={styles.cardTitle}>{item.label}</Text>
-                  <Text style={styles.cardSubtitle}>{item.description}</Text>
-                </View>
                 <Pressable
-                  style={[styles.toggleButton, notificationState[item.label] && styles.toggleActive]}
-                  onPress={() => setNotificationState((prev) => ({ ...prev, [item.label]: !prev[item.label] }))}
+                  style={styles.selectBox}
+                  onPress={() => {
+                    setMealDropdownOpen(false);
+                    setCalendarDropdownOpen(!calendarDropdownOpen);
+                  }}
                 >
-                  <View style={[styles.toggleCircle, notificationState[item.label] && styles.toggleCircleActive]} />
+                  <Text style={styles.selectText}>{selectedCalendarTime}</Text>
+                  <ChevronLeft size={16} color={theme.colors.mutedForeground} style={{ transform: [{ rotate: '-90deg' }] }} />
                 </Pressable>
+                {calendarDropdownOpen && (
+                  <View style={styles.dropdownWrapper}>
+                    <DropdownMenu
+                      options={calendarOptions}
+                      selected={selectedCalendarTime}
+                      onSelect={setSelectedCalendarTime}
+                      onClose={() => setCalendarDropdownOpen(false)}
+                    />
+                  </View>
+                )}
               </View>
-            ))}
+            </View>
           </View>
 
-          <View style={styles.card}>
-            <View style={styles.notificationRow}>
-              <View style={styles.iconBubbleDark}>
-                <Text style={styles.iconText}>🔕</Text>
+          <View style={[styles.divider, { zIndex: -1 }]} />
+
+          {/* Meal Prep */}
+          <View style={{ marginTop: 20, zIndex: mealDropdownOpen ? 20 : 1 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+              <ChefHat size={20} color={theme.colors.foreground} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.itemTitle}>Meal Prep Reminders</Text>
+                <Text style={styles.itemSubtitle}>Start cooking on time</Text>
               </View>
-              <View style={styles.notificationText}>
+              <Switch
+                value={mealPrepEnabled}
+                onValueChange={setMealPrepEnabled}
+                trackColor={{ false: theme.colors.muted, true: theme.colors.primary }}
+              />
+            </View>
+            <View style={styles.settingsRow}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Clock size={16} color={theme.colors.mutedForeground} />
+                <Text style={styles.label}>Start prep</Text>
+              </View>
+              <View>
+                <Pressable
+                  style={styles.selectBox}
+                  onPress={() => {
+                    setCalendarDropdownOpen(false);
+                    setMealDropdownOpen(!mealDropdownOpen);
+                  }}
+                >
+                  <Text style={styles.selectText}>{selectedMealTime}</Text>
+                  <ChevronLeft size={16} color={theme.colors.mutedForeground} style={{ transform: [{ rotate: '-90deg' }] }} />
+                </Pressable>
+                {mealDropdownOpen && (
+                  <View style={styles.dropdownWrapper}>
+                    <DropdownMenu
+                      options={mealPrepOptions}
+                      selected={selectedMealTime}
+                      onSelect={setSelectedMealTime}
+                      onClose={() => setMealDropdownOpen(false)}
+                    />
+                  </View>
+                )}
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* Notification Types */}
+        <Text style={styles.sectionHeader}>Notification Types</Text>
+        <View style={[styles.card, { paddingVertical: 8 }]}>
+          {notificationTypes.map((item, index) => (
+            <View key={item.id}>
+              <View style={styles.typeRow}>
+                <View style={styles.typeIconBg}>
+                  <item.icon size={20} color={theme.colors.mutedForeground} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.itemTitle}>{item.label}</Text>
+                  <Text style={styles.itemSubtitle}>{item.description}</Text>
+                </View>
+                <Switch
+                  value={typesState[item.id]}
+                  onValueChange={() => toggleType(item.id)}
+                  trackColor={{ false: theme.colors.muted, true: theme.colors.primary }}
+                />
+              </View>
+              {index < notificationTypes.length - 1 && <View style={styles.divider} />}
+            </View>
+          ))}
+        </View>
+
+        {/* Quiet Hours */}
+        <View style={[styles.card, { marginTop: 16 }]}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <View style={[styles.mainIconBg, { backgroundColor: theme.colors.muted }]}>
+                <BellOff size={24} color={theme.colors.foreground} />
+              </View>
+              <View>
                 <Text style={styles.cardTitle}>Quiet Hours</Text>
                 <Text style={styles.cardSubtitle}>Pause notifications during set times</Text>
               </View>
-              <Pressable style={[styles.toggleButton, quietHours && styles.toggleActive]} onPress={() => setQuietHours((prev) => !prev)}>
-                <View style={[styles.toggleCircle, quietHours && styles.toggleCircleActive]} />
-              </Pressable>
             </View>
-            <View style={styles.timeRow}>
-              <View style={styles.timeBox}>
-                <Text style={styles.timeLabel}>10:00 PM</Text>
-              </View>
-              <Text style={styles.toLabel}>to</Text>
-              <View style={styles.timeBox}>
-                <Text style={styles.timeLabel}>07:00 AM</Text>
-              </View>
-            </View>
+            <Switch
+              value={quietHoursEnabled}
+              onValueChange={setQuietHoursEnabled}
+              trackColor={{ false: theme.colors.muted, true: theme.colors.primary }}
+            />
           </View>
 
-          <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Delivery Methods</Text>
-            {deliveryMethods.map((item) => (
-              <View key={item.label} style={styles.notificationRow}>
-                <View style={styles.iconBubble}>
-                  <Text style={styles.iconText}>{item.icon}</Text>
-                </View>
-                <View style={styles.notificationText}>
-                  <Text style={styles.cardTitle}>{item.label}</Text>
-                </View>
-                <Pressable
-                  style={[styles.toggleButton, deliveryState[item.label] && styles.toggleActive]}
-                  onPress={() => setDeliveryState((prev) => ({ ...prev, [item.label]: !prev[item.label] }))}
-                >
-                  <View style={[styles.toggleCircle, deliveryState[item.label] && styles.toggleCircleActive]} />
-                </Pressable>
+          {quietHoursEnabled && (
+            <View style={styles.timeInputContainer}>
+              <Clock size={20} color={theme.colors.mutedForeground} />
+              <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+                <TextInput
+                  style={styles.timeInput}
+                  value={quietStart}
+                  onChangeText={setQuietStart}
+                />
+                <Text style={styles.label}>to</Text>
+                <TextInput
+                  style={styles.timeInput}
+                  value={quietEnd}
+                  onChangeText={setQuietEnd}
+                />
               </View>
-            ))}
+            </View>
+          )}
+        </View>
+
+        {/* Delivery Methods */}
+        <Text style={styles.sectionHeader}>Delivery Methods</Text>
+        <View style={styles.card}>
+          <View style={styles.deliveryRow}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <Smartphone size={20} color={theme.colors.mutedForeground} />
+              <Text style={styles.itemTitle}>Push Notifications</Text>
+            </View>
+            <Switch
+              value={pushEnabled}
+              onValueChange={setPushEnabled}
+              trackColor={{ false: theme.colors.muted, true: theme.colors.primary }}
+            />
           </View>
-        </ScrollView>
-      </AppLayout>
-    </>
+          <View style={styles.divider} />
+          <View style={styles.deliveryRow}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <Mail size={20} color={theme.colors.mutedForeground} />
+              <Text style={styles.itemTitle}>Email Notifications</Text>
+            </View>
+            <Switch
+              value={emailEnabled}
+              onValueChange={setEmailEnabled}
+              trackColor={{ false: theme.colors.muted, true: theme.colors.primary }}
+            />
+          </View>
+          <View style={styles.divider} />
+          <View style={styles.deliveryRow}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <Volume2 size={20} color={theme.colors.mutedForeground} />
+              <Text style={styles.itemTitle}>Sound</Text>
+            </View>
+            <Switch
+              value={soundEnabled}
+              onValueChange={setSoundEnabled}
+              trackColor={{ false: theme.colors.muted, true: theme.colors.primary }}
+            />
+          </View>
+        </View>
+
+        <View style={{ height: 40 }} />
+      </ScrollView>
+    </AppLayout>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    padding: theme.spacing.lg,
-    paddingBottom: 120,
-    backgroundColor: theme.colors.background,
+    padding: 16,
   },
-  headerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: theme.spacing.md,
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 20,
+    marginTop: 8,
   },
-  backButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
-    backgroundColor: theme.colors.card,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: theme.spacing.md,
+  iconButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: 'transparent',
   },
-  backIcon: {
-    fontSize: 26,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "700",
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '700',
     color: theme.colors.foreground,
   },
   card: {
     backgroundColor: theme.colors.card,
-    borderRadius: 24,
-    padding: theme.spacing.md,
-    marginBottom: theme.spacing.sm,
-    shadowColor: "#0a1a3c",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 3,
-  },
-  cardLead: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  iconBubble: {
-    width: 52,
-    height: 52,
     borderRadius: 16,
-    backgroundColor: theme.colors.muted,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: theme.spacing.md,
-  },
-  iconBubbleDark: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
-    backgroundColor: "#1b315d",
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: theme.spacing.md,
-  },
-  iconText: {
-    fontSize: 24,
-  },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: theme.colors.foreground,
-  },
-  cardSubtitle: {
-    color: theme.colors.mutedForeground,
-    fontSize: 14,
-  },
-  enableButton: {
-    paddingVertical: 12,
-    paddingHorizontal: theme.spacing.lg,
-    backgroundColor: theme.colors.muted,
-    borderRadius: 16,
-    alignSelf: "flex-end",
-    marginTop: theme.spacing.sm,
-  },
-  enableActive: {
-    backgroundColor: theme.colors.primary,
-  },
-  enableText: {
-    color: theme.colors.primaryForeground,
-    fontWeight: "700",
-  },
-  toggleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginTop: theme.spacing.md,
-    marginBottom: theme.spacing.sm,
-  },
-  toggleButton: {
-    width: 48,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: theme.colors.muted,
-    justifyContent: "center",
-    padding: 4,
-  },
-  toggleActive: {
-    backgroundColor: theme.colors.primary,
-  },
-  toggleCircle: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: "#fff",
-    marginLeft: 0,
-  },
-  toggleCircleActive: {
-    marginLeft: 24,
-  },
-  selectBox: {
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
     borderWidth: 1,
     borderColor: theme.colors.border,
+  },
+  mainIconBg: {
+    width: 48,
+    height: 48,
     borderRadius: 12,
-    padding: theme.spacing.sm,
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.colors.foreground,
+    marginBottom: 2,
+  },
+  cardSubtitle: {
+    fontSize: 13,
+    color: theme.colors.mutedForeground,
+  },
+  enableBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
     backgroundColor: theme.colors.muted,
   },
-  selectLabel: {
+  enableBtnActive: {
+    backgroundColor: '#1e3a8a', // Dark blue
+  },
+  enableBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
     color: theme.colors.foreground,
   },
-  label: {
-    fontWeight: "600",
+  itemTitle: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: theme.colors.foreground,
+  },
+  itemSubtitle: {
+    fontSize: 12,
     color: theme.colors.mutedForeground,
   },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    marginBottom: theme.spacing.sm,
+  settingsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingLeft: 32, // Indent to align with text above
   },
-  notificationRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: theme.spacing.sm,
+  label: {
+    fontSize: 13,
+    color: theme.colors.mutedForeground,
+    fontWeight: '500',
   },
-  notificationText: {
-    flex: 1,
-  },
-  timeRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+  selectBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: theme.colors.muted,
-    borderRadius: 16,
-    padding: theme.spacing.sm,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    gap: 8,
+    minWidth: 120,
+    justifyContent: 'space-between',
   },
-  timeBox: {
-    flex: 1,
-    alignItems: "center",
+  selectText: {
+    fontSize: 13,
+    color: theme.colors.foreground,
+    fontWeight: '500',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: theme.colors.border,
+    marginVertical: 12,
+  },
+  sectionHeader: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.foreground,
+    marginBottom: 12,
+    marginTop: 8,
+  },
+  typeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 8,
+  },
+  typeIconBg: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: theme.colors.muted,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  timeInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.muted,
+    padding: 12,
+    borderRadius: 12,
+    gap: 12,
+  },
+  timeInput: {
+    backgroundColor: theme.colors.card, // White/Dark
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    minWidth: 80,
+    textAlign: 'center',
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.foreground,
+  },
+  deliveryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+  },
+  dropdownWrapper: {
+    position: 'absolute',
+    top: '100%',
+    right: 0,
+    marginTop: 4,
     backgroundColor: theme.colors.card,
     borderRadius: 12,
-    padding: theme.spacing.sm,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    zIndex: 100,
+    minWidth: 160,
   },
-  timeLabel: {
-    fontWeight: "600",
+  dropdownOverlay: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
   },
-  toLabel: {
-    marginHorizontal: theme.spacing.md,
-    color: theme.colors.mutedForeground,
+  dropdownContainer: {
+    // This is handled by dropdownWrapper now, simplified logic
+  },
+  dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+  },
+  dropdownItemSelected: {
+    backgroundColor: '#1e3a8a', // Dark blue selected state
+  },
+  dropdownText: {
+    fontSize: 13,
+    color: theme.colors.foreground,
+  },
+  dropdownTextSelected: {
+    color: '#fff',
+    fontWeight: '600',
   },
 });

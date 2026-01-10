@@ -4,11 +4,17 @@ import { AppLayout } from "../components/layout/AppLayout";
 import { useMealPlan } from "../contexts/MealPlanContext";
 import { theme } from "../theme";
 
-interface RecipeDetailProps {
-  recipeId: number;
-}
+import { RouteProp, useRoute } from "@react-navigation/native";
 
-export const RecipeDetailScreen: React.FC<RecipeDetailProps> = ({ recipeId }) => {
+type ParamList = {
+  RecipeDetail: {
+    recipeId: number;
+  };
+};
+
+export const RecipeDetailScreen: React.FC = () => {
+  const route = useRoute<RouteProp<ParamList, "RecipeDetail">>();
+  const { recipeId } = route.params;
   const { getRecipeById } = useMealPlan();
   const recipe = getRecipeById(recipeId);
 
