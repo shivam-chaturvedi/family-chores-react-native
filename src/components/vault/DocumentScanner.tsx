@@ -6,7 +6,6 @@ import {
     StyleSheet,
     Pressable,
     TouchableWithoutFeedback,
-    Dimensions,
 } from "react-native";
 import { Camera, Upload, FileText, X } from "lucide-react-native";
 import { theme } from "../../theme";
@@ -133,16 +132,16 @@ const styles = StyleSheet.create({
     headerTitle: {
         fontSize: 18,
         fontWeight: "700",
-        color: theme.colors.foreground, // Dark blue/black
+        color: theme.colors.foreground,
     },
     dashedContainer: {
         borderWidth: 2,
-        borderColor: "#e2e8f0",
+        borderColor: "#cbd5e1", // slate-300
         borderStyle: "dashed",
         borderRadius: 20,
         padding: 24,
         alignItems: "center",
-        backgroundColor: "#f8fafc",
+        backgroundColor: "#f0f9ff", // light blue background
         marginBottom: 20,
     },
     iconCircle: {
@@ -159,6 +158,7 @@ const styles = StyleSheet.create({
         fontWeight: "700",
         color: theme.colors.foreground,
         marginBottom: 8,
+        textAlign: 'center',
     },
     captureDesc: {
         textAlign: "center",
@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
         fontSize: 14,
         lineHeight: 20,
         marginBottom: 24,
-        paddingHorizontal: 20,
+        paddingHorizontal: 10,
     },
     buttonsRow: {
         flexDirection: "row",
@@ -175,19 +175,18 @@ const styles = StyleSheet.create({
     },
     actionButton: {
         flex: 1,
-        backgroundColor: theme.colors.card,
+        backgroundColor: "#fff",
         borderRadius: 16,
         paddingVertical: 20,
         alignItems: "center",
         justifyContent: "center",
         borderWidth: 1,
         borderColor: theme.colors.border,
-        // Shadow for button feel
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.05,
         shadowRadius: 4,
-        elevation: 2,
+        elevation: 1,
     },
     actionBtnText: {
         fontWeight: "600",

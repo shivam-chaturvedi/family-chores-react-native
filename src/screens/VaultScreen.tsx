@@ -9,10 +9,11 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { AppLayout } from "../components/layout/AppLayout";
-import { useFamily, VaultDocument } from "../contexts/FamilyContext";
+import { useFamily } from "../contexts/FamilyContext";
 import { theme } from "../theme";
 import { useSidebar } from "../contexts/SidebarContext";
 import { useToast } from "../components/ui/Toast";
+import { DocumentScanner } from "../components/vault/DocumentScanner";
 import {
   Menu,
   Camera,
@@ -47,6 +48,7 @@ export const VaultScreen: React.FC = () => {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [showScanner, setShowScanner] = useState(false);
 
   // Combine global and active member docs for display (simplified logic)
   const allDocs = [...globalVault, ...(activeMember ? (memberVaults[activeMember.id] || []) : [])];
@@ -58,7 +60,7 @@ export const VaultScreen: React.FC = () => {
   });
 
   const handleScan = () => {
-    showToast({ title: "Scan Document", description: "Camera scanner opening...", type: "default" });
+    setShowScanner(true);
   };
 
   const handleUpload = () => {
@@ -241,6 +243,12 @@ export const VaultScreen: React.FC = () => {
         <Pressable style={styles.fab} onPress={handleScan}>
           <Plus size={24} color="#fff" />
         </Pressable>
+
+        {/* Document Scanner Modal */}
+        <DocumentScanner
+          open={showScanner}
+          onOpenChange={setShowScanner}
+        />
       </View>
     </AppLayout>
   );
