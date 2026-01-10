@@ -1,13 +1,13 @@
-import React, { createContext, useContext, useState, ReactNode } from "react";
-import { recipes, Recipe, Ingredient } from "../data/recipes";
-import { addDays, startOfWeek, format } from "date-fns";
+import React, { createContext, useContext, useState, ReactNode } from 'react';
+import { recipes, Recipe } from '../data/recipes';
+import { addDays, startOfWeek, format } from 'date-fns';
 
-export type MealType = "breakfast" | "lunch" | "dinner" | "snack";
+export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 
 export interface PlannedMeal {
   id: string;
   recipeId: number;
-  date: string;
+  date: string; // YYYY-MM-DD
   mealType: MealType;
 }
 
@@ -33,19 +33,20 @@ interface MealPlanContextType {
 
 const MealPlanContext = createContext<MealPlanContextType | undefined>(undefined);
 
+// Sample default meals
 const getDefaultMeals = (): PlannedMeal[] => {
   const today = new Date();
   const weekStart = startOfWeek(today, { weekStartsOn: 1 });
 
   return [
-    { id: "1", recipeId: 6, date: format(weekStart, "yyyy-MM-dd"), mealType: "breakfast" },
-    { id: "2", recipeId: 1, date: format(weekStart, "yyyy-MM-dd"), mealType: "lunch" },
-    { id: "3", recipeId: 5, date: format(weekStart, "yyyy-MM-dd"), mealType: "dinner" },
-    { id: "4", recipeId: 6, date: format(addDays(weekStart, 1), "yyyy-MM-dd"), mealType: "breakfast" },
-    { id: "5", recipeId: 7, date: format(addDays(weekStart, 1), "yyyy-MM-dd"), mealType: "lunch" },
-    { id: "6", recipeId: 2, date: format(addDays(weekStart, 1), "yyyy-MM-dd"), mealType: "dinner" },
-    { id: "7", recipeId: 4, date: format(addDays(weekStart, 2), "yyyy-MM-dd"), mealType: "breakfast" },
-    { id: "8", recipeId: 3, date: format(addDays(weekStart, 2), "yyyy-MM-dd"), mealType: "dinner" },
+    { id: '1', recipeId: 6, date: format(weekStart, 'yyyy-MM-dd'), mealType: 'breakfast' },
+    { id: '2', recipeId: 1, date: format(weekStart, 'yyyy-MM-dd'), mealType: 'lunch' },
+    { id: '3', recipeId: 5, date: format(weekStart, 'yyyy-MM-dd'), mealType: 'dinner' },
+    { id: '4', recipeId: 6, date: format(addDays(weekStart, 1), 'yyyy-MM-dd'), mealType: 'breakfast' },
+    { id: '5', recipeId: 7, date: format(addDays(weekStart, 1), 'yyyy-MM-dd'), mealType: 'lunch' },
+    { id: '6', recipeId: 2, date: format(addDays(weekStart, 1), 'yyyy-MM-dd'), mealType: 'dinner' },
+    { id: '7', recipeId: 4, date: format(addDays(weekStart, 2), 'yyyy-MM-dd'), mealType: 'breakfast' },
+    { id: '8', recipeId: 3, date: format(addDays(weekStart, 2), 'yyyy-MM-dd'), mealType: 'dinner' },
   ];
 };
 
@@ -62,29 +63,29 @@ export const MealPlanProvider: React.FC<{ children: ReactNode }> = ({ children }
       date,
       mealType,
     };
-    setPlannedMeals((prev) => [...prev, newMeal]);
+    setPlannedMeals(prev => [...prev, newMeal]);
   };
 
   const removeMealFromPlan = (mealId: string) => {
-    setPlannedMeals((prev) => prev.filter((meal) => meal.id !== mealId));
+    setPlannedMeals(prev => prev.filter(m => m.id !== mealId));
   };
 
   const getMealsForDay = (date: string): PlannedMeal[] => {
-    return plannedMeals.filter((meal) => meal.date === date);
+    return plannedMeals.filter(m => m.date === date);
   };
 
   const getRecipeById = (id: number): Recipe | undefined => {
-    return recipes.find((recipe) => recipe.id === id);
+    return recipes.find(r => r.id === id);
   };
 
   const generateGroceryList = (): GroceryListItem[] => {
     const ingredientMap = new Map<string, GroceryListItem>();
 
-    plannedMeals.forEach((meal) => {
+    plannedMeals.forEach(meal => {
       const recipe = getRecipeById(meal.recipeId);
       if (!recipe) return;
 
-      recipe.ingredients.forEach((ingredient) => {
+      recipe.ingredients.forEach(ingredient => {
         const key = `${ingredient.name.toLowerCase()}-${ingredient.unit}`;
         const existing = ingredientMap.get(key);
 
@@ -105,33 +106,31 @@ export const MealPlanProvider: React.FC<{ children: ReactNode }> = ({ children }
       });
     });
 
-    return Array.from(ingredientMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+    return Array.from(ingredientMap.values()).sort((a, b) =>
+      a.name.localeCompare(b.name)
+    );
   };
 
   const clearWeekPlan = () => {
     const weekEnd = addDays(currentWeekStart, 6);
-    setPlannedMeals((prev) =>
-      prev.filter((meal) => {
-        const mealDate = new Date(meal.date);
-        return mealDate < currentWeekStart || mealDate > weekEnd;
-      })
-    );
+    setPlannedMeals(prev => prev.filter(m => {
+      const mealDate = new Date(m.date);
+      return mealDate < currentWeekStart || mealDate > weekEnd;
+    }));
   };
 
   return (
-    <MealPlanContext.Provider
-      value={{
-        plannedMeals,
-        currentWeekStart,
-        setCurrentWeekStart,
-        addMealToPlan,
-        removeMealFromPlan,
-        getMealsForDay,
-        getRecipeById,
-        generateGroceryList,
-        clearWeekPlan,
-      }}
-    >
+    <MealPlanContext.Provider value={{
+      plannedMeals,
+      currentWeekStart,
+      setCurrentWeekStart,
+      addMealToPlan,
+      removeMealFromPlan,
+      getMealsForDay,
+      getRecipeById,
+      generateGroceryList,
+      clearWeekPlan,
+    }}>
       {children}
     </MealPlanContext.Provider>
   );
@@ -140,7 +139,7 @@ export const MealPlanProvider: React.FC<{ children: ReactNode }> = ({ children }
 export const useMealPlan = () => {
   const context = useContext(MealPlanContext);
   if (!context) {
-    throw new Error("useMealPlan must be used within a MealPlanProvider");
+    throw new Error('useMealPlan must be used within a MealPlanProvider');
   }
   return context;
 };

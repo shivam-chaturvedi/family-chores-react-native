@@ -6,86 +6,154 @@ import {
   ScrollView,
   TextInput,
   Pressable,
+  Modal,
+  Alert,
 } from "react-native";
 import { AppLayout } from "../components/layout/AppLayout";
-import { useFamily } from "../contexts/FamilyContext";
+import { useFamily, GroceryItem } from "../contexts/FamilyContext";
+import { useMealPlan } from "../contexts/MealPlanContext";
 import { theme } from "../theme";
 import { GlobalSearch } from "../components/search/GlobalSearch";
 import { useSidebar } from "../contexts/SidebarContext";
 import { AppIcon } from "../components/ui/AppIcon";
 
-type GroceryItem = {
-  id: string;
-  name: string;
-  category: string;
-  quantity: string;
-  owner: string;
-  icon: string;
-  status: "todo" | "done";
-};
-
-const sampleList: GroceryItem[] = [
-  { id: "1", name: "Milk", category: "Dairy", quantity: "2 L", owner: "Partner", icon: "👩‍❤️‍👨", status: "todo" },
-  { id: "2", name: "Eggs", category: "Meat & Protein", quantity: "12 pcs", owner: "Partner", icon: "👩‍❤️‍👨", status: "todo" },
-  { id: "3", name: "Rice", category: "Pantry", quantity: "5 kg", owner: "Me", icon: "🧑", status: "todo" },
-  { id: "4", name: "Bread", category: "Bakery", quantity: "1 loaf", owner: "Me", icon: "🧑", status: "done" },
-];
-
 const tabs = ["By Category", "All Items"];
 
-const memberBadges = [
-  { label: "Me", icon: "🧑" },
-  { label: "Partner", icon: "👩‍❤️‍👨" },
-];
+const categorizeItem = (name: string): string => {
+  // Simple categorization logic for demo purposes
+  const lowerName = name.toLowerCase();
+  if (["milk", "cheese", "yogurt", "butter"].some(i => lowerName.includes(i))) return "Dairy";
+  if (["bread", "bagel", "croissant"].some(i => lowerName.includes(i))) return "Bakery";
+  if (["apple", "banana", "lettuce", "tomato", "vegetable", "fruit"].some(i => lowerName.includes(i))) return "Produce";
+  if (["chicken", "beef", "pork", "egg", "meat"].some(i => lowerName.includes(i))) return "Meat & Protein";
+  if (["rice", "pasta", "cereal", "flour"].some(i => lowerName.includes(i))) return "Pantry";
+  return "Other";
+};
 
 export const ListsScreen: React.FC = () => {
-  const { groceryList } = useFamily();
+  const { groceryList, addGroceryItem, toggleGroceryItem, activeMember, members } = useFamily();
+  const { generateGroceryList } = useMealPlan();
+
   const [activeTab, setActiveTab] = useState("By Category");
   const [searchQuery, setSearchQuery] = useState("");
   const [quantity, setQuantity] = useState(1);
+  const [newItemName, setNewItemName] = useState("");
   const [showSearch, setShowSearch] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const { openSidebar } = useSidebar();
+
+  const [mealPlanItems, setMealPlanItems] = useState<ReturnType<typeof generateGroceryList>>([]);
+
   const filteredItems = useMemo(() => {
-    const combinedList = [...groceryList, ...sampleList];
-    return combinedList.filter((item) =>
+    return groceryList.filter((item) =>
       item.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [groceryList, searchQuery]);
 
-  const todoItems = filteredItems.filter((item) => item.status === "todo");
-  const doneItems = filteredItems.filter((item) => item.status === "done");
-  const progress = filteredListProgress(filteredItems);
+  const todoItems = filteredItems.filter((item) => !item.completed);
+  const doneItems = filteredItems.filter((item) => item.completed);
 
-  function filteredListProgress(items: GroceryItem[]) {
-    const todo = items.filter((item) => item.status === "todo").length;
-    const total = items.length;
-    if (!total) return 0;
-    return Math.round((total - todo) / total * 100);
-  }
+  const progress = filteredItems.length > 0
+    ? Math.round((doneItems.length / filteredItems.length) * 100)
+    : 0;
 
   const handleAddQuantity = (delta: number) => {
     setQuantity((prev) => Math.max(1, prev + delta));
   };
 
+  const handleAddItem = () => {
+    if (newItemName.trim()) {
+      addGroceryItem({
+        name: newItemName.trim(),
+        quantity: quantity,
+        unit: "pcs", // Default unit
+        addedBy: activeMember?.id || "1",
+        completed: false,
+      });
+      setNewItemName("");
+      setQuantity(1);
+    }
+  };
+
+  const handleOpenImport = () => {
+    const items = generateGroceryList();
+    setMealPlanItems(items);
+    setShowImportModal(true);
+  };
+
+  const handleImportItem = (item: { name: string; quantity: number; unit: string }) => {
+    addGroceryItem({
+      name: item.name,
+      quantity: item.quantity,
+      unit: item.unit,
+      addedBy: activeMember?.id || "1",
+      completed: false,
+    });
+    Alert.alert("Item added", `${item.name} added to grocery list`);
+  };
+
+  const handleImportAll = () => {
+    mealPlanItems.forEach((item) => {
+      addGroceryItem({
+        name: item.name,
+        quantity: item.quantity,
+        unit: item.unit,
+        addedBy: activeMember?.id || "1",
+        completed: false,
+      });
+    });
+    setShowImportModal(false);
+    Alert.alert("All items imported!", `${mealPlanItems.length} items added to your list`);
+  };
+
+  const getMemberIcon = (memberId: string) => {
+    const member = members.find(m => m.id === memberId);
+    return member ? member.symbol : "👤";
+  };
+
+  const groupedByCategory = (items: GroceryItem[]) => {
+    const groups: Record<string, GroceryItem[]> = {};
+    items.forEach((item) => {
+      const category = categorizeItem(item.name);
+      if (!groups[category]) groups[category] = [];
+      groups[category].push(item);
+    });
+    return Object.entries(groups).map(([category, groupItems]) => ({
+      category,
+      items: groupItems,
+    }));
+  };
+
+  const inputRef = React.useRef<TextInput>(null);
+
+  const handleFabPress = () => {
+    inputRef.current?.focus();
+  };
+
   return (
     <>
-      <AppLayout showAddButton={false} showNav={false}>
+      <AppLayout
+        showAddButton={true}
+        showNav={false}
+        onAddPress={handleFabPress}
+      >
         <ScrollView contentContainerStyle={styles.container}>
           <View style={styles.headerRow}>
             <Pressable onPress={openSidebar} style={styles.menuButton}>
               <AppIcon name="menu" size={20} color={theme.colors.foreground} />
             </Pressable>
-            <View>
-              <Text style={styles.title}>Grocery</Text>
-              <Text style={styles.subtitle}>List</Text>
+            <View style={{ flex: 1, marginLeft: 16 }}>
+              <Text style={styles.title}>Grocery List</Text>
             </View>
             <View style={styles.headerActions}>
               <Pressable style={styles.roundButton} onPress={() => setShowSearch(true)}>
                 <AppIcon source="🔍" size={18} color={theme.colors.foreground} />
               </Pressable>
-              <Pressable style={styles.roundButton}>
+
+              <Pressable style={styles.roundButton} onPress={handleOpenImport}>
                 <AppIcon source="📅" size={18} color={theme.colors.foreground} />
               </Pressable>
+
               <Pressable style={styles.roundButton}>
                 <AppIcon source="🎙️" size={18} color={theme.colors.foreground} />
               </Pressable>
@@ -94,10 +162,10 @@ export const ListsScreen: React.FC = () => {
 
           <View style={styles.progressCard}>
             <View style={styles.progressIcon}>
-              <AppIcon name="shoppingCart" size={28} color="#1f4c85" />
+              <AppIcon name="shoppingCart" size={28} color={theme.colors.success} />
             </View>
             <View style={styles.progressContent}>
-              <Text style={styles.progressTitle}>{todoItems.length}/{filteredItems.length} items</Text>
+              <Text style={styles.progressTitle}>{doneItems.length}/{filteredItems.length} items</Text>
               <View style={styles.progressBar}>
                 <View style={[styles.progressFill, { width: `${progress}%` }]} />
               </View>
@@ -123,11 +191,13 @@ export const ListsScreen: React.FC = () => {
 
           <View style={styles.addRow}>
             <TextInput
+              ref={inputRef}
               style={styles.addInput}
               placeholder="Add item..."
               placeholderTextColor={theme.colors.mutedForeground}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
+              value={newItemName}
+              onChangeText={setNewItemName}
+              onSubmitEditing={handleAddItem}
             />
             <View style={styles.qtyControl}>
               <Pressable style={styles.qtyButton} onPress={() => handleAddQuantity(-1)}>
@@ -138,7 +208,7 @@ export const ListsScreen: React.FC = () => {
                 <AppIcon name="plus" size={16} color={theme.colors.foreground} />
               </Pressable>
             </View>
-            <Pressable style={styles.addButton}>
+            <Pressable style={styles.addButton} onPress={handleAddItem}>
               <Text style={styles.addText}>Add</Text>
             </Pressable>
           </View>
@@ -154,13 +224,17 @@ export const ListsScreen: React.FC = () => {
                   {group.items.map((item) => (
                     <View key={item.id} style={styles.todoRow}>
                       <View style={styles.todoLeft}>
-                        <Text style={styles.dragHandle}>⋮⋮</Text>
-                        <View style={styles.checkbox} />
-                        <Text style={styles.todoText}>{item.name}</Text>
+                        <Pressable
+                          onPress={() => toggleGroceryItem(item.id)}
+                          style={[styles.checkbox, item.completed && styles.checkboxActive]}
+                        >
+                          {item.completed && <AppIcon name="check" size={14} color="#fff" />}
+                        </Pressable>
+                        <Text style={[styles.todoText, item.completed && styles.completedText]}>{item.name}</Text>
                       </View>
-                      <Text style={styles.quantityText}>{item.quantity}</Text>
+                      <Text style={styles.quantityText}>{item.quantity} {item.unit}</Text>
                       <View style={styles.ownerBadge}>
-                        <AppIcon source={item.icon} size={18} color="#0b2f57" />
+                        <Text style={{ fontSize: 14 }}>{getMemberIcon(item.addedBy)}</Text>
                       </View>
                     </View>
                   ))}
@@ -171,73 +245,124 @@ export const ListsScreen: React.FC = () => {
             <>
               <View style={styles.listWrapper}>
                 <Text style={styles.sectionTitle}>To Buy ({todoItems.length})</Text>
+                {todoItems.length === 0 && (
+                  <Text style={[styles.todoText, { textAlign: 'center', opacity: 0.5, padding: 20 }]}>All items purchased!</Text>
+                )}
                 {todoItems.map((item) => (
                   <View key={item.id} style={styles.todoRow}>
                     <View style={styles.todoLeft}>
-                      <Text style={styles.dragHandle}>⋮⋮</Text>
-                      <View style={styles.checkbox} />
+                      <Pressable
+                        onPress={() => toggleGroceryItem(item.id)}
+                        style={[styles.checkbox, item.completed && styles.checkboxActive]}
+                      >
+                        {item.completed && <AppIcon name="check" size={14} color="#fff" />}
+                      </Pressable>
                       <Text style={styles.todoText}>{item.name}</Text>
                     </View>
-                    <Text style={styles.quantityText}>{item.quantity}</Text>
+                    <Text style={styles.quantityText}>{item.quantity} {item.unit}</Text>
                     <View style={styles.ownerBadge}>
-                      <Text style={styles.ownerIcon}>{item.icon}</Text>
+                      <Text style={{ fontSize: 14 }}>{getMemberIcon(item.addedBy)}</Text>
                     </View>
                   </View>
                 ))}
               </View>
-              <View style={styles.listWrapper}>
-                <Text style={styles.sectionTitle}>Completed ({doneItems.length})</Text>
-                {doneItems.map((item) => (
-                  <View key={item.id} style={[styles.todoRow, styles.completedRow]}>
-                    <View style={styles.todoLeft}>
-                      <Text style={styles.dragHandle}>⋮⋮</Text>
-                      <View style={[styles.checkbox, styles.checkboxActive]}>
-                        <AppIcon name="check" size={14} color="#0b2f57" />
+
+              {doneItems.length > 0 && (
+                <View style={styles.listWrapper}>
+                  <Text style={styles.sectionTitle}>Completed ({doneItems.length})</Text>
+                  {doneItems.map((item) => (
+                    <View key={item.id} style={[styles.todoRow, styles.completedRow]}>
+                      <View style={styles.todoLeft}>
+                        <Pressable
+                          onPress={() => toggleGroceryItem(item.id)}
+                          style={[styles.checkbox, styles.checkboxActive]}
+                        >
+                          <AppIcon name="check" size={14} color="#fff" />
+                        </Pressable>
+                        <Text style={[styles.todoText, styles.completedText]}>
+                          {item.name}
+                        </Text>
                       </View>
-                      <Text style={[styles.todoText, styles.completedText]}>
-                        {item.name}
-                      </Text>
+                      <Text style={styles.quantityText}>{item.quantity} {item.unit}</Text>
+                      <View style={styles.ownerBadge}>
+                        <Text style={{ fontSize: 14 }}>{getMemberIcon(item.addedBy)}</Text>
+                      </View>
                     </View>
-                    <Text style={styles.quantityText}>{item.quantity}</Text>
-                    <View style={styles.ownerBadge}>
-                      <Text style={styles.ownerIcon}>{item.icon}</Text>
-                    </View>
-                  </View>
-                ))}
-              </View>
+                  ))}
+                </View>
+              )}
             </>
           )}
 
           <View style={styles.memberRow}>
             <Text style={styles.sectionTitle}>Added by</Text>
             <View style={styles.badgeList}>
-              {memberBadges.map((badge) => (
-                <View key={badge.label} style={styles.memberBadge}>
-                  <Text style={styles.ownerIcon}>{badge.icon}</Text>
-                  <Text style={styles.memberText}>{badge.label}</Text>
-                  <Text style={styles.memberCount}>(2)</Text>
-                </View>
-              ))}
+              {members.map((member) => {
+                const count = groceryList.filter(i => i.addedBy === member.id).length;
+                if (count === 0) return null;
+                return (
+                  <View key={member.id} style={styles.memberBadge}>
+                    <Text>{member.symbol}</Text>
+                    <Text style={styles.memberText}>{member.name}</Text>
+                    <Text style={styles.memberCount}>({count})</Text>
+                  </View>
+                );
+              })}
             </View>
           </View>
         </ScrollView>
       </AppLayout>
+
+      {/* Import Modal */}
+      <Modal visible={showImportModal} transparent animationType="slide" onRequestClose={() => setShowImportModal(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <AppIcon name="calendar" size={24} color={theme.colors.primary} />
+              <Text style={styles.modalTitle}>Import from Meal Plan</Text>
+              <Pressable onPress={() => setShowImportModal(false)} style={styles.closeButton}>
+                <AppIcon name="x" size={24} color={theme.colors.mutedForeground} />
+              </Pressable>
+            </View>
+
+            <ScrollView style={styles.modalContent}>
+              {mealPlanItems.length === 0 ? (
+                <View style={{ alignItems: 'center', padding: 32 }}>
+                  <AppIcon name="calendar" size={48} color={theme.colors.muted} />
+                  <Text style={{ marginTop: 16, color: theme.colors.mutedForeground }}>No meals planned yet.</Text>
+                </View>
+              ) : (
+                <View style={{ gap: 8 }}>
+                  {mealPlanItems.map((item, index) => (
+                    <View key={`${item.name}-${index}`} style={styles.importItemRow}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.importItemName}>{item.name}</Text>
+                        <Text style={styles.importItemMeta}>{item.quantity} {item.unit} • from {item.fromRecipes.length} recipe(s)</Text>
+                      </View>
+                      <Pressable
+                        style={styles.importItemAdd}
+                        onPress={() => handleImportItem(item)}
+                      >
+                        <AppIcon name="plus" size={16} color={theme.colors.foreground} />
+                      </Pressable>
+                    </View>
+                  ))}
+                  <Pressable style={styles.importAllButton} onPress={handleImportAll}>
+                    <AppIcon name="download" size={16} color="#fff" style={{ marginRight: 8 }} />
+                    <Text style={styles.importAllText}>Import All ({mealPlanItems.length} items)</Text>
+                  </Pressable>
+                </View>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
       <GlobalSearch open={showSearch} onClose={() => setShowSearch(false)} />
     </>
   );
 };
 
-const groupedByCategory = (items: GroceryItem[]) => {
-  const groups: Record<string, GroceryItem[]> = {};
-  items.forEach((item) => {
-    if (!groups[item.category]) groups[item.category] = [];
-    groups[item.category].push(item);
-  });
-  return Object.entries(groups).map(([category, groupItems]) => ({
-    category,
-    items: groupItems,
-  }));
-};
 
 const styles = StyleSheet.create({
   container: {
@@ -264,16 +389,8 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 3,
   },
-  menuIcon: {
-    fontSize: 20,
-  },
   title: {
-    fontSize: 26,
-    fontWeight: "700",
-    color: theme.colors.foreground,
-  },
-  subtitle: {
-    fontSize: 26,
+    fontSize: 22,
     fontWeight: "700",
     color: theme.colors.foreground,
   },
@@ -282,17 +399,17 @@ const styles = StyleSheet.create({
     gap: theme.spacing.sm,
   },
   roundButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     backgroundColor: theme.colors.card,
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#0a1a3c",
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 4,
+    shadowRadius: 6,
+    elevation: 3,
   },
   progressCard: {
     flexDirection: "row",
@@ -311,7 +428,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 16,
-    backgroundColor: "#e6f5ec",
+    backgroundColor: "rgba(46, 94, 153, 0.1)",
     justifyContent: "center",
     alignItems: "center",
     marginRight: theme.spacing.md,
@@ -333,7 +450,8 @@ const styles = StyleSheet.create({
   },
   progressFill: {
     height: "100%",
-    backgroundColor: "#2c9a59",
+    backgroundColor: theme.colors.success,
+    borderRadius: 10,
   },
   tabRow: {
     flexDirection: "row",
@@ -349,9 +467,9 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   tabPillActive: {
-    borderWidth: 2,
-    borderColor: theme.colors.primary,
     backgroundColor: theme.colors.card,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
   tabText: {
     color: theme.colors.mutedForeground,
@@ -375,6 +493,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.muted,
     paddingHorizontal: theme.spacing.md,
     fontSize: 16,
+    color: theme.colors.foreground,
   },
   qtyControl: {
     flexDirection: "row",
@@ -390,10 +509,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   qtyValue: {
-    width: 24,
+    width: 30,
     textAlign: "center",
     fontWeight: "700",
     fontSize: 16,
+    color: theme.colors.foreground,
   },
   addButton: {
     backgroundColor: theme.colors.primary,
@@ -445,21 +565,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flex: 1,
   },
-  dragHandle: {
-    marginRight: theme.spacing.sm,
-    color: theme.colors.mutedForeground,
-  },
   checkbox: {
-    width: 26,
-    height: 26,
+    width: 24,
+    height: 24,
     borderRadius: 8,
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: theme.colors.border,
     marginRight: theme.spacing.sm,
+    alignItems: "center",
+    justifyContent: "center",
   },
   checkboxActive: {
-    backgroundColor: "#2c9a59",
-    borderColor: "#2c9a59",
+    backgroundColor: theme.colors.success,
+    borderColor: theme.colors.success,
   },
   todoText: {
     fontWeight: "600",
@@ -473,12 +591,13 @@ const styles = StyleSheet.create({
   quantityText: {
     marginHorizontal: theme.spacing.md,
     color: theme.colors.mutedForeground,
+    fontSize: 12,
   },
   ownerBadge: {
     width: 32,
     height: 32,
     borderRadius: 12,
-    backgroundColor: "#e1e6ef",
+    backgroundColor: theme.colors.background,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -500,7 +619,7 @@ const styles = StyleSheet.create({
     color: theme.colors.foreground,
   },
   completedRow: {
-    backgroundColor: "#e8f5ea",
+    backgroundColor: "rgba(46, 94, 153, 0.05)",
   },
   memberRow: {
     marginVertical: theme.spacing.md,
@@ -530,5 +649,82 @@ const styles = StyleSheet.create({
   },
   memberCount: {
     color: theme.colors.mutedForeground,
+  },
+  // Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    padding: 16,
+  },
+  modalContainer: {
+    backgroundColor: theme.colors.card,
+    borderRadius: 24,
+    maxHeight: "80%",
+    padding: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 5,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: theme.colors.foreground,
+    flex: 1,
+  },
+  closeButton: {
+    padding: 4,
+  },
+  modalContent: {
+    marginBottom: 0,
+  },
+  importItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.muted,
+    padding: 12,
+    borderRadius: 16,
+    marginBottom: 8,
+  },
+  importItemName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.colors.foreground,
+  },
+  importItemMeta: {
+    fontSize: 12,
+    color: theme.colors.mutedForeground,
+  },
+  importItemAdd: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: theme.colors.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  importAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.colors.primary,
+    padding: 16,
+    borderRadius: 16,
+    marginTop: 16,
+  },
+  importAllText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 16,
   },
 });

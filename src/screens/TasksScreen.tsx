@@ -12,6 +12,7 @@ import { AddTaskModal } from "../components/modals/AddTaskModal";
 import { GlobalSearch } from "../components/search/GlobalSearch";
 import { useSidebar } from "../contexts/SidebarContext";
 import { AppIcon } from "../components/ui/AppIcon";
+import { ChoreRotationSystem } from "../components/chores/ChoreRotationSystem";
 
 interface Task {
   id: string;
@@ -35,10 +36,6 @@ const initialTasks: Task[] = [
   { id: "t5", icon: "🏫", name: "Sign permission slip", status: "done", priority: "high", due: "Tomorrow", assignee: "Mom", tab: "Family Tasks" },
   { id: "t6", icon: "🛠️", name: "Fix leaky faucet", status: "pending", priority: "medium", due: "This week", assignee: "Dad", tab: "Family Tasks" },
   { id: "t7", icon: "📦", name: "Order birthday cake", status: "pending", priority: "high", due: "In 2 days", assignee: "You", tab: "Family Tasks" },
-
-  { id: "t8", icon: "🛏️", name: "Make bed", status: "done", priority: "medium", due: "Done", assignee: "Emma", tab: "Kids Chores" },
-  { id: "t9", icon: "🐶", name: "Feed the dog", status: "pending", priority: "low", due: "Today", assignee: "Jake", tab: "Kids Chores" },
-  { id: "t10", icon: "🧺", name: "Put away laundry", status: "pending", priority: "medium", due: "This afternoon", assignee: "Emma", tab: "Kids Chores" },
 ];
 
 const getPriorityStyle = (priority: Task["priority"]) => {
@@ -81,7 +78,11 @@ export const TasksScreen: React.FC = () => {
 
   return (
     <>
-      <AppLayout showAddButton={false} showNav={false}>
+      <AppLayout
+        showAddButton={true}
+        showNav={false}
+        onAddPress={() => setShowAddTask(true)}
+      >
         <ScrollView contentContainerStyle={styles.container}>
           <View style={styles.header}>
             <Pressable onPress={openSidebar} style={styles.menuButton}>
@@ -96,7 +97,7 @@ export const TasksScreen: React.FC = () => {
                 <AppIcon source="⚲" size={18} color={theme.colors.foreground} />
               </Pressable>
               <Pressable style={styles.plusAction} onPress={() => setShowAddTask(true)}>
-                <AppIcon name="plus" size={18} color={theme.colors.primary} />
+                <AppIcon name="plus" size={18} color={theme.colors.primaryForeground} />
               </Pressable>
             </View>
           </View>
@@ -116,62 +117,68 @@ export const TasksScreen: React.FC = () => {
             })}
           </View>
 
-          <View style={styles.progressCard}>
-            <View style={styles.progressHeader}>
-              <Text style={styles.progressLabel}>Progress: {completedCount}/{totalCount}</Text>
-              <Text style={styles.progressPercent}>{progress}%</Text>
-            </View>
-            <View style={styles.progressBar}>
-              <View style={[styles.progressFill, { width: `${progress}%` }]} />
-            </View>
-          </View>
-
-          <View style={styles.taskList}>
-            {filteredTasks.map((task) => {
-              const priorityStyle = getPriorityStyle(task.priority);
-              return (
-                <View
-                  key={task.id}
-                  style={[styles.taskCard, task.status === "done" && styles.taskDone]}
-                >
-                  <Pressable
-                    style={[styles.checkCircle, task.status === "done" && styles.checkCircleActive]}
-                    onPress={() => toggleTask(task.id)}
-                  >
-                    {task.status === "done" && <Text style={styles.checkMark}>✓</Text>}
-                  </Pressable>
-                  <View style={styles.taskDetails}>
-                    <View style={styles.taskTitleRow}>
-                      <AppIcon source={task.icon} size={20} color={theme.colors.primary} style={styles.taskListIcon} />
-                      <Text style={[styles.taskTitle, task.status === "done" && styles.taskTextDone]}>
-                        {task.name}
-                      </Text>
-                    </View>
-                    <View style={styles.metaRow}>
-                      <View style={[styles.priorityBadge, { backgroundColor: priorityStyle.background }]}>
-                        <Text style={[styles.priorityText, { color: priorityStyle.color }]}>
-                          {priorityStyle.label}
-                        </Text>
-                      </View>
-                      <View style={styles.metaItem}>
-                        <AppIcon name="clock" size={14} color={palette.ocean} style={styles.metaIcon} />
-                        <Text style={styles.metaText}>{task.due}</Text>
-                      </View>
-                      <View style={styles.metaItem}>
-                        <AppIcon name="user" size={14} color={palette.ocean} style={styles.metaIcon} />
-                        <Text style={styles.metaText}>{task.assignee}</Text>
-                      </View>
-                    </View>
-                  </View>
+          {activeTab === "Kids Chores" ? (
+            <ChoreRotationSystem />
+          ) : (
+            <>
+              <View style={styles.progressCard}>
+                <View style={styles.progressHeader}>
+                  <Text style={styles.progressLabel}>Progress: {completedCount}/{totalCount}</Text>
+                  <Text style={styles.progressPercent}>{progress}%</Text>
                 </View>
-              );
-            })}
-          </View>
+                <View style={styles.progressBar}>
+                  <View style={[styles.progressFill, { width: `${progress}%` }]} />
+                </View>
+              </View>
 
-          <Pressable style={styles.addNewRow}>
-            <AppIcon name="plus" size={16} color={theme.colors.primary} style={styles.addNewIcon} />
-            <Text style={styles.addNewText}>Add new task</Text>
-          </Pressable>
+              <View style={styles.taskList}>
+                {filteredTasks.map((task) => {
+                  const priorityStyle = getPriorityStyle(task.priority);
+                  return (
+                    <View
+                      key={task.id}
+                      style={[styles.taskCard, task.status === "done" && styles.taskDone]}
+                    >
+                      <Pressable
+                        style={[styles.checkCircle, task.status === "done" && styles.checkCircleActive]}
+                        onPress={() => toggleTask(task.id)}
+                      >
+                        {task.status === "done" && <Text style={styles.checkMark}>✓</Text>}
+                      </Pressable>
+                      <View style={styles.taskDetails}>
+                        <View style={styles.taskTitleRow}>
+                          <Text style={{ fontSize: 20, marginRight: 8 }}>{task.icon}</Text>
+                          <Text style={[styles.taskTitle, task.status === "done" && styles.taskTextDone]}>
+                            {task.name}
+                          </Text>
+                        </View>
+                        <View style={styles.metaRow}>
+                          <View style={[styles.priorityBadge, { backgroundColor: priorityStyle.background }]}>
+                            <Text style={[styles.priorityText, { color: priorityStyle.color }]}>
+                              {priorityStyle.label}
+                            </Text>
+                          </View>
+                          <View style={styles.metaItem}>
+                            <AppIcon name="clock" size={14} color={theme.colors.mutedForeground} style={styles.metaIcon} />
+                            <Text style={styles.metaText}>{task.due}</Text>
+                          </View>
+                          <View style={styles.metaItem}>
+                            <AppIcon name="user" size={14} color={theme.colors.mutedForeground} style={styles.metaIcon} />
+                            <Text style={styles.metaText}>{task.assignee}</Text>
+                          </View>
+                        </View>
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+
+              <Pressable style={styles.addNewRow} onPress={() => setShowAddTask(true)}>
+                <AppIcon name="plus" size={16} color={theme.colors.primary} style={styles.addNewIcon} />
+                <Text style={styles.addNewText}>Add new task</Text>
+              </Pressable>
+            </>
+          )}
         </ScrollView>
       </AppLayout>
       <GlobalSearch open={showSearch} onClose={() => setShowSearch(false)} />
@@ -234,7 +241,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 16,
-    backgroundColor: theme.colors.primaryForeground,
+    backgroundColor: theme.colors.primary,
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#0a1a3c",
@@ -333,6 +340,10 @@ const styles = StyleSheet.create({
   checkCircleActive: {
     backgroundColor: "#8bc34a",
     borderColor: "#8bc34a",
+  },
+  checkMark: {
+    color: "#fff",
+    fontWeight: "bold",
   },
   taskDetails: {
     flex: 1,
