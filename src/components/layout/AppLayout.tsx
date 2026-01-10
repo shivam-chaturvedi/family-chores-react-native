@@ -17,9 +17,9 @@ interface AppLayoutProps {
 
 export const AppLayout: React.FC<AppLayoutProps> = ({
   children,
-  showNav = true,
+  showNav = false,
   showAddButton = true,
-  onAddPress = () => {},
+  onAddPress = () => { },
   style = {},
   navActiveRoute,
   navOnNavigate,
